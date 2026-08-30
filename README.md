@@ -5,6 +5,11 @@ synced visualiser.
 
 Everything the customers said, at the volume it felt like.
 
+https://github.com/user-attachments/assets/bf23d241-ea83-4a27-9abc-3093195c0900
+
+*40 seconds from a five-track set. The words on screen are a real review,
+chopped and chanted.*
+
 ```
 input/<any export>.csv
       |
@@ -293,9 +298,17 @@ docs/session-EXAMPLE.md    session file format
 docs/text.json.example     visualiser text format
 ```
 
-Nothing audio or customer-facing is committed. `input/`, `tracks/`, `output/`
-and the real session files are gitignored — review exports and session files
-quote customers verbatim. The repo holds skills, scripts and config only.
+**Nothing audio or customer-facing is committed.** `input/`, `tracks/`,
+`output/` and the real session files are gitignored — review exports and session
+files quote customers verbatim. The repo holds skills, scripts and config only,
+and a clone of it contains no customer data at all.
+
+**The demo clip at the top is a deliberate exception, and it is not in the
+repo.** It is hosted on GitHub's attachment CDN and embedded here, and it does
+show a real review captioned on screen. That was a decision, not an oversight —
+a tool like this is hard to judge from a description, and the whole point is
+that the words are real. Everything the pipeline actually produces still stays
+on the machine that made it.
 
 See `CLAUDE.md` for the working rules.
 
