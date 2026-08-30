@@ -5,10 +5,10 @@ synced visualiser.
 
 Everything the customers said, at the volume it felt like.
 
-https://github.com/user-attachments/assets/bf23d241-ea83-4a27-9abc-3093195c0900
+https://github.com/user-attachments/assets/8910be28-4121-4cc4-9961-63ffaad3ff82
 
-*40 seconds from a five-track set. The words on screen are a real review,
-chopped and chanted.*
+*40 seconds from the closing track of a five-track set. The words on screen are
+a real review, chopped and chanted.*
 
 ```
 input/<any export>.csv
