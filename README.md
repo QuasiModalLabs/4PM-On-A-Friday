@@ -10,6 +10,33 @@ https://github.com/user-attachments/assets/8910be28-4121-4cc4-9961-63ffaad3ff82
 *40 seconds from the closing track of a five-track set. The words on screen are
 a real review, chopped and chanted.*
 
+## Why this exists
+
+In the modern firm, customer feedback gets rolled up and metricised into a KPI.
+Great for reporting. Great for management. Less great for the actual feeling
+behind the feedback, which collapses into a number somewhere on a dashboard.
+
+CSAT moved 4.2 to 4.1. Nobody in the room feels anything. Someone suggests
+digging into the drivers.
+
+This puts a dimension back without losing what prompted the feedback in the
+first place. The lyrics are the reviewers' own words — chopped, repeated,
+chanted. Not summarised, not paraphrased, not sentiment-scored into a bucket.
+The actual sentence, at volume, over a reverse bass. That is the whole conceit,
+and it is why the pipeline refuses to rewrite anyone's words into something
+tidier: a review turned into generic lyrics is worthless, because the humour and
+the impact both come from hearing what someone actually typed.
+
+Then, once a week, everyone hears it together. Not a corporate ritual — an
+actual experience of what the product does to the person on the other end of it.
+
+Ten minutes a week, collectively feeling the pain we need to fix and the joy we
+already deliver.
+
+That is the name. 4PM on a Friday is the slot.
+
+## How it works
+
 ```
 input/<any export>.csv
       |
@@ -23,13 +50,18 @@ input/<any export>.csv
                                         |
                                         |  skill: hardstyle-blend
                                         v
-                              output/mix.wav + video.mp4
+                     output/mix.wav -> mastered.wav + video.mp4
 ```
 
-The lyrics are the reviewers' own words, chopped and repeated. That is the whole
-conceit — a review rewritten into generic lyrics is worthless, because the
-humour and the impact both come from hearing an actual customer's actual
-sentence chanted over a reverse bass.
+Two skills and one manual step. Claude curates the reviews, writes the Suno
+prompts, decides the running order, blends, masters and renders. You paste the
+prompts into Suno and listen to what comes back.
+
+The set is mastered twice, because one master does not win everywhere:
+`--profile device` for people at their desks on laptops and headphones, and
+`--profile club` for the room with the actual speakers. Same mix, different
+delivery; the difference is measured and reported rather than guessed at.
+
 
 ## Design rationale
 
@@ -139,6 +171,37 @@ the tempo clusters rather than the median — on a set split between 152 and 161
 BPM, the median forces one group to −5.9% while the mean holds everything to
 3.1%.
 
+### Loudness is a delivery decision, not a quality one
+
+The mastering stage started with the obvious target. Commercial hardstyle masters
+sit around −6 to −8 LUFS, so it defaulted there. That was wrong, and the way it
+was wrong is the interesting part.
+
+Suno's output arrives around −14 LUFS with −4 dBTP — already dynamic, with
+headroom, needing no rescue. Measured on a real set, every decibel above where
+the blend already lands is paid for in transients: pushing one track to −11.5
+needs no limiting at all, to −9.2 needs 19.9% of the file limited, to −8.9 needs
+33.8%. The assembled mix is worse again, because crossfades sum two tracks and
+raise density further. Short-term crest — which on hardstyle *is* the kick —
+went from 9.20 dB at the blend to 8.25 at −9 and 7.83 at −8.
+
+So the default is now −11.5 LUFS: exactly where the blend sits, limiter never
+engaged, nothing given up. The master became a safety pass — level matching,
+peak ceiling, mono check — rather than a loudness push.
+
+Then listening on real speakers complicated it again. The louder, limited
+version genuinely sounded better on a system with subs, and worse on laptops.
+Both were true at once, which is why there are two profiles instead of one
+compromise. On a rig that can move air, limiting reads as density and power; on
+a small driver there is no sub to carry it and the same limiting only costs
+clarity.
+
+Two things worth stealing from this. **Level-match before you A/B anything** —
+louder always flatters, so an unmatched comparison tells you nothing, and the
+first comparison here was unmatched and nearly led to the wrong call. And when
+the numbers and the ears disagree, the ears are describing a playback system the
+numbers never modelled.
+
 ## Setup
 
 Activate a virtual environment first. `check.py` fails hard if a `.venv` exists
@@ -183,8 +246,9 @@ python3 scripts/check.py
 ```
 
 `check.py` verifies the venv, librosa, soundfile, numpy, pillow, pandas,
-openpyxl, ffmpeg and fonts, and prints platform-specific fixes for anything
-missing. Do not start debugging pipeline failures until it passes — most early
+openpyxl, ffmpeg, the ffmpeg filters the mastering pass needs (`ebur128`,
+`alimiter`, `bass`, `treble`) and fonts, and prints platform-specific fixes for
+anything missing. Do not start debugging pipeline failures until it passes — most early
 problems are a missing ffmpeg.
 
 ## Use
@@ -218,19 +282,44 @@ python scripts/ingest.py --from ~/Downloads
 Matches each download to its track by title and files it under the right number.
 Re-running is a no-op, so downloading in batches is fine. `--dry-run` previews.
 
-**4. Blend and visualise.**
+**4. Blend, master and visualise.**
 
 > Blend today's tracks and render a video.
 
 Claude analyses tempo, key and energy, proposes a running order and explains
-why, beatmatches, crossfades, and renders the MP4.
+why, beatmatches, level-matches, crossfades, masters and renders the MP4.
+
+**5. Play it at 4PM.** For the room, use the club master; for anyone joining on
+headphones, the device one.
+
+```
+python .claude/skills/hardstyle-blend/scripts/master.py     --in output/mix.wav --out output/mastered-club.wav --profile club
+```
+
+`--list-profiles` prints both with the measured cost of each.
+
+## Tests
+
+```
+python -m unittest discover -s tests
+```
+
+136 tests, about 45 seconds, no dependencies beyond what the pipeline already
+needs. The audio ones are anchored on arithmetic rather than ears — a dual-mono
+1 kHz sine at amplitude A measures exactly 20·log10(A) LUFS — and they pin the
+ffmpeg behaviours that quietly corrupt a master if nobody is watching: the
+limiter's auto-level default, its 5 ms lookahead, the 1/√2 mono-to-stereo
+upmix, and the 192 kHz resample hiding inside `loudnorm`.
 
 ## What it cannot do
 
 **Claude cannot hear the audio.** The numbers confirm a mix is beat-aligned,
-level-consistent, and that no track needed an audible stretch. They do not
-confirm that the transitions land or that a track is any good. Anyone telling
-you otherwise from a JSON file is guessing. That call is yours, after listening.
+that no track needed an audible stretch, and — since the mastering pass — the
+measured loudness in and out, the true peak, the gain applied to each track, how
+hard the limiter worked and how well the mix survives a mono sum. They do not
+confirm that the transitions land, that a track is any good, or that the limiter
+is not pumping. Anyone telling you otherwise from a JSON file is guessing. That
+call is yours, after listening.
 
 **Claude cannot run Suno.** The WAV handoff is the boundary, by design. See
 above.
@@ -266,8 +355,35 @@ exactly this reason.
 apostrophe out of Excel will stop a naive `pd.read_csv`. The skill falls back
 through `utf-8-sig`, `cp1252`, `latin-1` and reports which one it used.
 
-**The mix is peak-normalised only.** No loudness matching, no mono-sum check, no
-mastering. It is level-consistent, not mastered.
+**The master is measured, not judged.** `blend.py` level-matches each track to
+the median loudness of the set (clamped to 3 dB) and `master.py` takes the
+finished mix to a loudness target under a true-peak ceiling, reporting every
+number it used. What no number tells you is whether the limiter is pumping —
+check `limited_pct` and `gr_max_db`, then listen. The tonal EQ is opt-in for the
+same reason: it matches a published genre tilt, which makes a mix more average,
+not better.
+
+**The default loudness target is deliberately not chart-loud.** `--lufs -11.5`
+is where the blend already sits, so the limiter never engages and the master
+costs no transients — it is a safety pass, not a loudness push. Suno sources
+arrive around -14 LUFS with real headroom; they do not need rescuing. Measured
+on this set, every dB above the blend's own level is paid for in punch: short-
+term crest runs 9.20 dB at the blend, 8.25 at -9 LUFS, 7.83 at -8, and on
+hardstyle crest is the kick. `--lufs -9` and `-6` are there for a louder set,
+with real limiting at both — use them with ears on the result. `master.py` stops
+chasing a target past `--max-limiting-pct` and says how far short it stopped.
+
+**A -1.0 dBTP master still overshoots through AAC.** Measured on the shipped
+encode: 11 samples out of 29.9 million exceed full scale, peaking at +5.2 dBFS.
+It is 0.000037% of the file and it predates the mastering pass — the earlier
+video measured +2.5 dBTP from a quieter mix. Lower `--tp` if it ever matters.
+
+**This does not replace the dashboard.** It is not a measurement instrument and
+it does not aggregate anything. Five reviews a week, chosen for being chantable,
+are not a representative sample and should never be presented as one. The KPI
+still tells you what is happening across everyone; this tells you what one
+Tuesday afternoon felt like for one person. The argument is that a team needs
+both, not that the second replaces the first.
 
 **Session state is markdown and JSON.** Fine at five tracks a week. It would
 strain long before it became a library.
@@ -277,7 +393,6 @@ strain long before it became a library.
 - Re-run the Suno / Eleven Music comparison when Eleven ships a model update.
   It lost on vocal chops, not on platform, and that is the kind of gap a new
   model closes. Keep the reference set so the re-test is cheap.
-- A mastering pass — loudness normalisation and a mono-compatibility check.
 - Make chronological versus energy-arc ordering an explicit switch instead of a
   per-session argument.
 - Surface the pre-flight as a flag on the render itself, so it cannot be skipped.
@@ -290,10 +405,14 @@ config/business.md         business context — fill this in first
   review-to-hardstyle/     reviews -> Suno prompts
   hardstyle-blend/         tracks -> mix + video
     scripts/analyze.py     tempo, key, energy per track
-    scripts/blend.py       timestretch + beat-aligned crossfade
+    scripts/blend.py       timestretch + level match + crossfade
+    scripts/master.py      loudness, true-peak ceiling, mono check
+    scripts/loudness.py    ebur128 measurement + gain staging
     scripts/visualize.py   audio-reactive MP4 with review text
+    references/tilt.json   published genre EQ curve, with provenance
 scripts/check.py           environment verification
 scripts/ingest.py          Suno downloads -> numbered session files
+tests/                     136 tests, stdlib unittest
 docs/session-EXAMPLE.md    session file format
 docs/text.json.example     visualiser text format
 ```

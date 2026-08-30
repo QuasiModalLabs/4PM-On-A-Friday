@@ -1,0 +1,53 @@
+{
+  "_what_this_is": [
+    "Delivery profiles for master.py. Each is a loudness target, a true-peak",
+    "ceiling, and how much limiting is allowed in service of the target.",
+    "",
+    "Profiles set LOUDNESS ONLY. They deliberately do not carry EQ: tonal moves",
+    "stay explicit (--eq), because a profile that quietly reshapes the spectrum",
+    "is a profile nobody can reason about.",
+    "",
+    "These two exist because the same master does not win everywhere. Verified",
+    "by listening on this project's own material: the louder, limited version",
+    "sounded better on a real bass system and worse on laptop and work speakers.",
+    "That is the normal split -- on a big rig, limiting reads as density and",
+    "power; on a small driver there is no sub to carry it and the same limiting",
+    "only costs transient clarity."
+  ],
+
+  "default": "device",
+
+  "profiles": {
+    "device": {
+      "lufs": -11.5,
+      "tp": -1.0,
+      "max_limiting_pct": 60.0,
+      "summary": "Laptops, phones, desktop and work speakers. The default.",
+      "rationale": [
+        "Sits where the blend already lands, so the limiter never engages and the",
+        "master costs nothing in transients -- it is a safety pass: per-track",
+        "level match, peak ceiling, mono check.",
+        "Measured on this material: 0% limiting, loudness range unchanged at",
+        "2.9 LU, short-term crest held at 9.20 dB."
+      ]
+    },
+
+    "club": {
+      "lufs": -9.0,
+      "tp": -1.0,
+      "max_limiting_pct": 60.0,
+      "summary": "PA and sub-equipped systems, where density reads as power.",
+      "rationale": [
+        "About 2.5 dB louder, bought with real limiting: roughly 47% of the file,",
+        "worst-case -3.3 dB gain reduction, loudness range 2.9 -> 2.5 LU and",
+        "short-term crest 9.20 -> 8.25 dB.",
+        "That transient cost is what makes it worse on small speakers and better",
+        "on a rig that can move air. Do not ship it as the only master."
+      ]
+    }
+  },
+
+  "louder_still": "There is no profile above -9. --lufs -6 is reachable but limits roughly 90% of a typical set here; if anyone wants it, they should listen to it first.",
+
+  "how_to_judge": "Level-match before comparing. Louder always flatters, so an unmatched A/B tells you nothing -- match both to the same LUFS and the only thing left is what the limiting did."
+}
