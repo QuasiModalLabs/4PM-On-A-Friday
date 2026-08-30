@@ -19,16 +19,30 @@ behind the feedback, which collapses into a number somewhere on a dashboard.
 CSAT moved 4.2 to 4.1. Nobody in the room feels anything. Someone suggests
 digging into the drivers.
 
-This puts a dimension back without losing what prompted the feedback in the
-first place. The lyrics are the reviewers' own words — chopped, repeated,
-chanted. Not summarised, not paraphrased, not sentiment-scored into a bucket.
-The actual sentence, at volume, over a reverse bass. That is the whole conceit,
-and it is why the pipeline refuses to rewrite anyone's words into something
-tidier: a review turned into generic lyrics is worthless, because the humour and
-the impact both come from hearing what someone actually typed.
+The feeling is one thing that gets lost. The other is subtler: a number invites
+interpretation, and interpretation has a pecking order. The most senior person
+present frames what the dip means and the room calibrates to that frame. The
+customer gets discussed in the third person, in the past tense, by people ranked
+relative to each other.
 
-Then, once a week, everyone hears it together. Not a corporate ritual — an
-actual experience of what the product does to the person on the other end of it.
+This transmits the feeling instead, and transmits it unmediated. The lyrics are
+the reviewers' own words — chopped, repeated, chanted. Not summarised, not
+paraphrased, not sentiment-scored into a bucket. The actual sentence, at volume,
+over a reverse bass. That is why the pipeline refuses to tidy anyone's words: a
+review rewritten into generic lyrics is worthless, because the humour and the
+impact both come from hearing what someone actually typed.
+
+And because there is no summary layer, there is no interpretation layer, and
+nothing for anyone's seniority to attach to. Everyone gets the same sentence, at
+the same volume, in the same second. You cannot reframe a chant while it is
+playing. For those ten minutes the hierarchy flattens: the founder and the
+person who joined on Monday are hearing one specific customer together, and in
+that moment neither of them outranks that customer.
+
+Which is why it is played in a room rather than sent round as a link. A link
+gets opened at fourteen different times, at fourteen different volumes, by
+people already holding fourteen different opinions about the roadmap.
+Synchronised is the point, not a nicety.
 
 Ten minutes a week, collectively feeling the pain we need to fix and the joy we
 already deliver.
@@ -58,12 +72,31 @@ prompts, decides the running order, blends, masters and renders. You paste the
 prompts into Suno and listen to what comes back.
 
 The set is mastered twice, because one master does not win everywhere:
-`--profile device` for people at their desks on laptops and headphones, and
-`--profile club` for the room with the actual speakers. Same mix, different
-delivery; the difference is measured and reported rather than guessed at.
+`--profile club` for the room with the actual speakers, `--profile device` for
+whoever is remote and joining on headphones. Same mix, different delivery; the
+difference is measured and reported rather than guessed at.
 
+Both are still played at the same moment. The second master is for people who
+are not in the room, not for people who would rather listen later — a
+distributed team can be synchronised, an async link cannot.
 
 ## Design rationale
+
+### Staff names come out; the customer's words stay in
+
+Service reviews name people constantly. The pipeline replaces those names with a
+role or cuts the clause, and that rule is load-bearing rather than squeamish.
+
+The flattening only works because the customer is the one voice in the room that
+outranks everyone. A chant that names a colleague inverts it exactly: now there
+is a target, the target is junior to most of the people hearing it, and ten
+minutes that were supposed to point outward point at one person instead. A track
+chanting a named employee's mistakes is a different artifact from one chanting a
+complaint, and a much worse one.
+
+The customer's words are never edited for the opposite reason. Tidying them puts
+an author between the room and the person who typed the sentence, and the author
+has a rank.
 
 ### Why Suno, and why it stays manual
 
@@ -377,6 +410,14 @@ chasing a target past `--max-limiting-pct` and says how far short it stopped.
 encode: 11 samples out of 29.9 million exceed full scale, peaking at +5.2 dBFS.
 It is 0.000037% of the file and it predates the mastering pass — the earlier
 video measured +2.5 dBTP from a quieter mix. Lower `--tp` if it ever matters.
+
+**The flattening lasts as long as the track does.** Ten minutes without a
+pecking order is a real thing, and it is still ten minutes. The meeting
+afterwards has the same org chart it had before, and if nothing in the roadmap
+ever moves because of what the room heard, people work that out quickly and the
+whole thing becomes the corporate ritual it was explicitly not meant to be. The
+format cannot make an organisation listen. It can only make not listening harder
+to do comfortably.
 
 **This does not replace the dashboard.** It is not a measurement instrument and
 it does not aggregate anything. Five reviews a week, chosen for being chantable,
