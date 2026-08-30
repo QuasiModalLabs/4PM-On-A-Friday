@@ -141,9 +141,36 @@ explicit `"file": "03-slug.wav"` key to an entry to pin it. Do not reorder
 the captions.
 
 **Render time is the constraint.** Roughly real-time at 1080p: a ten-minute mix
-takes about ten minutes. Draft at `--size 720` first, then render final at 1080.
-Square suits LinkedIn and Instagram; pass `--size 1080` and crop later if you
-need vertical.
+takes about ten minutes. Square suits LinkedIn and Instagram; pass `--size 1080`
+and crop later if you need vertical.
+
+**Always do the 1-fps pre-flight before any full render.** Same resolution you
+intend to ship, one frame per second:
+
+```bash
+python3 scripts/visualize.py --audio mix.wav --tracklist mix.tracklist.json \
+    --text text.json --out preflight.mp4 --size 1080 --fps 1
+```
+
+A ten-minute mix takes about half a minute. Pull a frame from each track and
+look at them:
+
+```bash
+ffmpeg -v error -ss 330 -i preflight.mp4 -frames:v 1 -y frame.png
+```
+
+This exists because two separate faults reached a finished 1080 render and
+neither could have been caught by drafting at 720:
+
+- Review text truncated mid-sentence. The line cap was resolution-independent,
+  so the 720 draft was cut in exactly the same place and looked normal.
+- A curly apostrophe rendered as mojibake, from a JSON read that used the
+  platform default encoding. Also identical at every size.
+
+Resolution is rarely what is wrong. Text, hook-to-track matching, and encoding
+are, and all three are visible in a frame — so check frames cheaply and often,
+and spend the full render once. Drafting at 720 is still worth it if you are
+judging composition or font weight, but it is not the correctness gate.
 
 
 Give the tracklist with timestamps, then the file. Keep it short — they want to
