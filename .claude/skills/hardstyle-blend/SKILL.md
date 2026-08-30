@@ -9,9 +9,10 @@ Turns a folder of individual tracks into one continuous, beatmatched mix with a
 tracklist. Built for hardstyle and hard dance, where tracks sit in a narrow BPM
 band and tempo correction stays small, but works for anything similar.
 
-Three stages: **analyse** (a script), **order** (your judgement), **blend** (a
-script). The middle stage is the point. Alphabetical ordering wastes the effort
-of beatmatching, and a set that opens at peak energy has nowhere to go.
+Four stages: **analyse** (a script), **order** (your judgement), **blend** (a
+script), **master** (a script), plus an optional **visualise**. The ordering
+stage is the point. Alphabetical ordering wastes the effort of beatmatching, and
+a set that opens at peak energy has nowhere to go.
 
 ## Stage 1 — Analyse
 
@@ -100,13 +101,88 @@ python3 scripts/blend.py --order order.json --out mix.wav
 Timestretches each track onto the master tempo with ffmpeg `atempo`, which
 preserves pitch. That matters: resampling instead would shift every track's key
 and undo the harmonic ordering. Trims each track's lead-in so downbeats land on
-the grid, crossfades with equal-power curves, and normalises the result to
--1 dBFS.
+the grid, level-matches the tracks, crossfades with equal-power curves, and
+normalises the result to -1 dBFS.
 
-Writes `mix.wav` and `mix.tracklist.json` with timestamps and per-track stretch
-amounts.
+**Level matching targets the median loudness of the set**, not an absolute
+figure. The audible problem between tracks is relative — one track under the
+rest vanishes into its own crossfade — and the median moves the least audio to
+fix it. The absolute level is decided once, downstream in `master.py`, so the
+two stages never fight. Corrections are clamped to ±3 dB; a track wanting more
+is mismatched in a way gain cannot fix, and the clamp is reported by name.
 
-## Stage 4 — Visualise (optional)
+Each track is measured *after* stretching and trimming, because that is the
+audio that actually enters the mix. `--gain-match off` disables it.
+
+Writes `mix.wav` and `mix.tracklist.json` with timestamps, per-track stretch
+amounts, per-track `input_lufs` and `gain_db`, and the measured loudness of the
+assembled mix.
+
+**Put the ordering rationale in `order.json` as `rationale`.** `blend.py` carries
+it into the tracklist. Hand-editing it into the tracklist afterwards means it is
+destroyed the next time anyone re-blends.
+
+## Stage 4 — Master
+
+```bash
+python3 scripts/master.py --in mix.wav --out mastered.wav --tracklist mix.tracklist.json
+```
+
+Takes the finished mix to a loudness target under a true-peak ceiling.
+Defaults `--lufs -11.5 --tp -1.0`; both overridable.
+
+The default sits where the blend already is, so the limiter never engages and
+the stage costs nothing in transients — level match, peak ceiling and mono check
+for free. That is the right default here because Suno sources arrive around
+-14 LUFS with headroom to spare. Louder is available and is a judgement call
+someone has to make with ears: `--lufs -9` limits about 47% of a typical set,
+`-6` most of it.
+
+Separate from blend on purpose: blending is the expensive stage, and you must be
+able to re-master at a different target without re-stretching everything.
+
+**Pre-flight it first — this is the `--fps 1` of the master stage:**
+
+```bash
+python3 scripts/master.py --in mix.wav --dry-run
+```
+
+Full length, full measurement path, writes no audio, about 20 seconds. It prints
+the gain it would apply, the predicted true peak, and how hard the limiter would
+work. Read that before committing.
+
+Measurement is ffmpeg `ebur128`; gain is a scalar in numpy; limiting is
+`alimiter`. **`loudnorm` is deliberately not used** — it resamples to 192 kHz
+internally, and this pipeline does not resample. Do not "simplify" `master.py`
+into a one-line `loudnorm` call.
+
+What to report to the user: measured LUFS in and out, true peak, and how much of
+the file the limiter touched. Those are facts. Whether it sounds better is not.
+
+**Watch `limited_pct`.** At the default it is 0 and there is nothing to watch.
+The moment someone raises `--lufs`, it is the number that matters: above about
+60% the target is costing real dynamics. `master.py` stops chasing past
+`--max-limiting-pct` and says how far short it stopped, rather than grinding the
+set flat to hit a number. `--limit-mode reduce` holds the ceiling by giving up
+loudness instead of limiting at all.
+
+**If someone says the master sounds worse than the raw tracks, check loudness
+first.** Compare like for like — level-match both to the same LUFS before
+judging, because louder always flatters. On this material the honest answer was
+that the loudness target was costing transients and the fix was to stop pushing.
+
+**The EQ is opt-in and stays opt-in.** `--eq curve` matches the published genre
+tilt in `references/tilt.json` (which records its own provenance and limits);
+`--eq match --reference <wav>` matches a mix someone chose with their ears, which
+is strictly better; `--eq shelf` applies numbers a human picked. All are clamped
+to ±1.5 dB across two broad shelves. Matching a genre curve makes a mix more
+average, not better — say that rather than implying a quality gain.
+
+Writes `mastered.wav`, `mastered.master.json`, and — with `--tracklist` — an
+updated tracklist that preserves everything already in it, `order_rationale`
+included.
+
+## Stage 5 — Visualise (optional)
 
 ```bash
 python3 scripts/visualize.py --audio mix.wav --tracklist mix.tracklist.json \
@@ -198,12 +274,29 @@ guessing — blending the wrong day wastes their time and yours.
 atempo handles cleanly. Beyond ~8% sustained tones start to warble. The script
 refuses beyond 15%.
 
-**You cannot hear the output.** The numbers confirm the mix is level and
-beat-aligned; they do not confirm it sounds good. Say so rather than asserting
-the transitions land — that is the user's call after listening.
+**You cannot hear the output.** The numbers confirm the mix is beat-aligned,
+level-matched, on its loudness target and under its peak ceiling. They do not
+confirm it sounds good, and specifically they do not tell you whether the
+limiter is pumping. Say so rather than asserting the transitions land — that is
+the user's call after listening.
 
-**Mono-summing and loudness are not handled.** The output is peak-normalised
-only. If they want a mastered set, that is a separate step.
+**Loudness and mono-summing are handled, and reported as numbers.**
+`master.json` carries integrated LUFS in and out, loudness range, true peak,
+gain applied, limiter gain reduction and how much of the file it touched, plus
+stereo and bass correlation and mono-sum loss. Quote those; do not editorialise
+past them.
+
+**Verify cheaply.** Two levels, both without ears:
+
+- `python3 -m unittest discover -s tests` from the repo root — 136 tests, about
+  45 seconds. The real suite; run it after touching any script here.
+- `python3 scripts/master.py --selftest` — the same ground truth with no test
+  runner, for checking a machine rather than the code.
+
+Both anchor on arithmetic: a dual-mono 1 kHz sine at amplitude A measures
+exactly 20·log10(A) LUFS. The suite also pins the ffmpeg behaviours that would
+silently corrupt a master — `alimiter`'s auto-level default and its 5 ms
+lookahead, the 1/√2 mono→stereo upmix, the 192 kHz `loudnorm` resample.
 
 **Dependencies.** `librosa`, `soundfile`, `pillow`, `ffmpeg`. Install with
 `pip install librosa soundfile pillow --break-system-packages`. The visualiser

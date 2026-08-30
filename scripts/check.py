@@ -57,9 +57,24 @@ for mod in ["librosa", "soundfile", "numpy", "PIL", "pandas", "openpyxl"]:
     except ImportError:
         check(mod, False, PIP)
 
-check("ffmpeg", shutil.which("ffmpeg") is not None,
+FFMPEG = shutil.which("ffmpeg")
+check("ffmpeg", FFMPEG is not None,
       "winget install Gyan.FFmpeg   (then restart your terminal)" if WIN
       else "apt install ffmpeg   /   brew install ffmpeg")
+
+# A minimal ffmpeg build passes the which() check above and then fails deep
+# inside the blend or master stage with an opaque error. These four carry the
+# whole mastering pass: measurement, limiting, and the two EQ shelves.
+if FFMPEG:
+    import subprocess
+    try:
+        filters = subprocess.run([FFMPEG, "-hide_banner", "-filters"],
+                                 capture_output=True, text=True).stdout
+    except Exception:
+        filters = ""
+    for filt in ["ebur128", "alimiter", "bass", "treble"]:
+        check(f"ffmpeg filter: {filt}", f" {filt} " in filters,
+              "this ffmpeg build is too minimal; install a full build")
 
 FONTS = {
     "bold":    ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",

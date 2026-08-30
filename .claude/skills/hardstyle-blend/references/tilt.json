@@ -1,0 +1,41 @@
+{
+  "name": "EDM/hardstyle spectral tilt reference",
+  "tilt_db_per_octave": -1.5,
+  "reference_hz": 1000,
+  "floor_hz": 20,
+
+  "what_this_is": [
+    "A pink-noise-referenced spectral tilt, not a measured hardstyle band table.",
+    "The target band profile is computed from the tilt at run time (see",
+    "target_profile() in master.py), so the whole curve is one documented number",
+    "rather than six invented ones."
+  ],
+
+  "provenance": {
+    "figure": "-1.5 dB/octave",
+    "basis": "Published EDM mastering guidance: a ~1.5 dB/octave downward tilt is the commonly cited starting balance for EDM, with the caveat that the best value varies by track and subgenre.",
+    "sources": [
+      "https://www.sonible.com/blog/tonal-balance/",
+      "https://www.izotope.com/en/learn/leveling-up-your-mastering-workflow-with-tonal-balance-control.html",
+      "https://www.masteringthemix.com/blogs/learn/understanding-mastering-eq-balancing-the-spectrum"
+    ],
+    "retrieved": "2026-08-30",
+    "not_sourced_from": "No public, numeric, hardstyle-specific target spectrum was found. Commercial genre curves (e.g. iZotope Tonal Balance Control) exist but their values are proprietary and are not reproduced here."
+  },
+
+  "limits": [
+    "A genre tilt describes what EDM masters typically do on average. It does not",
+    "describe what this set should do, and matching it does not make a mix sound",
+    "better -- only more average.",
+    "Two mixes with identical band energy can sound completely different. A broad",
+    "shelf cannot fix a resonance, masking, or the 200-400 Hz buildup where two",
+    "crossfaded kicks sum.",
+    "The measurement is averaged across the whole set, so it says nothing about",
+    "any individual moment.",
+    "Corrections are clamped to +/-1.5 dB and applied as two broad shelves. If a",
+    "run wants the full clamp on both ends, suspect the curve or the measurement",
+    "before trusting the result."
+  ],
+
+  "better_option": "Once a mix has been listened to and approved, measure it and use it as the reference instead: `--eq match --reference <that>.wav`. A reference someone chose with their ears beats a genre average."
+}

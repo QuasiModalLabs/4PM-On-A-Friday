@@ -20,7 +20,7 @@ input/reviews.csv
                                         |
                                         |  skill: hardstyle-blend
                                         v
-                              output/mix.wav + video.mp4
+                     output/mix.wav -> mastered.wav + video.mp4
 ```
 
 ## First run
@@ -39,6 +39,28 @@ and every symptom afterwards is misleading.
 Windows as often as Linux. On Windows: `python` not `python3`, no
 `--break-system-packages`, no `&&` in Windows PowerShell 5.1, backslash paths,
 `Expand-Archive` not `unzip`. Getting this wrong wastes a round trip every time.
+
+## Tests
+
+```
+python -m unittest discover -s tests          (Windows)
+python3 -m unittest discover -s tests         (mac/Linux)
+```
+
+136 tests, about 45 seconds, no new dependencies — stdlib `unittest`, for the
+same reason `pyloudnorm` was rejected. Run it after touching anything under the
+skill's `scripts/`.
+
+The suite is anchored on arithmetic, not on ears: a dual-mono 1 kHz sine of
+amplitude A measures exactly 20·log10(A) LUFS, and everything about gain,
+limiting and metering is checked against that. It also pins the ffmpeg
+behaviours that silently corrupt a master — `alimiter`'s auto-level default, its
+5 ms lookahead, the 1/√2 mono→stereo upmix, and the 192 kHz `loudnorm` resample
+— so a future "simplification" fails loudly instead of shipping.
+
+`master.py --selftest` still exists and overlaps deliberately: it needs no test
+runner and is the thing to reach for when checking a machine rather than the
+code.
 
 ## Business context
 
@@ -59,11 +81,13 @@ lyrics use the reviewer's verbatim words, chopped and repeated. Read its
 SKILL.md before running it — the chopping technique and the name-stripping rule
 are both load-bearing.
 
-**`hardstyle-blend`** — four stages. `analyze.py` emits BPM, key, Camelot code,
+**`hardstyle-blend`** — five stages. `analyze.py` emits BPM, key, Camelot code,
 and energy shape per track. **You decide the running order from that JSON** —
 that stage is judgement, not a script, and it is the reason the output is a set
-rather than a concatenation. `blend.py` timestretches onto a master tempo and
-crossfades on the beat grid. `visualize.py` renders the MP4.
+rather than a concatenation. `blend.py` timestretches onto a master tempo,
+level-matches the tracks and crossfades on the beat grid. `master.py` takes the
+mix to a loudness target under a true-peak ceiling. `visualize.py` renders the
+MP4.
 
 ## Working rules
 
@@ -114,6 +138,42 @@ renaming. Always write `file`.
 key and undo the harmonic ordering. `blend.py` uses ffmpeg `atempo`, which holds
 pitch. Corrections inside a hardstyle set land at 1-4%, well within clean range.
 
+Nothing downstream resamples either. This is why the mastering pass uses
+`ebur128` + `alimiter` rather than ffmpeg's `loudnorm`: `loudnorm` resamples to
+192 kHz internally (verified — 44100 in, 192000 out). Do not "simplify"
+`master.py` into a one-line `loudnorm` call; the comment at the top of
+`loudness.py` exists to stop exactly that.
+
+**Master by numbers; never claim tone.** Every mastering stage reports what it
+measured and what it did: integrated LUFS in and out, loudness range, true peak,
+per-track gain, limiter gain reduction and the percentage of the file it
+touched, stereo and bass correlation, mono-sum loss. State those as facts. Do
+not say the master sounds better, warmer, punchier or fuller — you cannot hear
+it.
+
+**Default target is -11.5 LUFS at -1.0 dBTP, and that is on purpose.** It is
+where the blend already sits, so the limiter never engages and the stage costs
+no transients. Do not "fix" it upward to the commercial hardstyle figure: Suno
+sources arrive around -14 LUFS with headroom, and measurement on a real set
+showed every dB above the blend's level is paid for in punch — short-term crest
+9.20 dB at the blend, 8.25 at -9, 7.83 at -8. The user listened and chose
+-11.5. Louder is opt-in via `--lufs`, and the tool refuses to grind past
+`--max-limiting-pct` chasing a number.
+
+**Compare like for like.** If anyone reports the master sounding worse than the
+raw tracks, level-match before judging — louder always flatters, so a louder
+master that still sounds worse is real evidence, and an unmatched comparison is
+none.
+
+**Per-track level matching targets the set's median, not an absolute figure.**
+The audible fault is relative, and the absolute level gets decided once, in
+`master.py`. Corrections clamp at ±3 dB and clamping is reported by name.
+
+**The tonal EQ is opt-in and stays that way.** `references/tilt.json` is a
+published genre tilt that records its own provenance and its own limits. It
+makes a mix more average, not better, and a genre curve is strictly worse than a
+reference mix someone has actually listened to.
+
 **Pre-flight every render at `--fps 1`, then render final at 1080.** Render time
 is roughly real-time, so a ten-minute set is a ten-minute render — but a
 full-length pass at one frame per second takes about thirty seconds and
@@ -132,9 +192,13 @@ artifact than one chanting a complaint. Replace with a role or cut the clause.
 
 ## What Claude cannot do here
 
-Cannot hear audio. The numbers confirm a mix is level-consistent and
-beat-aligned; they do not confirm the transitions land or that a track sounds
-good. Say so rather than asserting it — that is the user's call after listening.
+Cannot hear audio. The numbers confirm a mix is beat-aligned, level-matched, on
+its loudness target and under its peak ceiling; they do not confirm the
+transitions land, that a track sounds good, or that the limiter is not pumping.
+Say so rather than asserting it — that is the user's call after listening.
+`master.py --selftest` (in the skill's `scripts/`) is the substitute for ears on
+the code itself: it checks the whole measurement and gain chain against
+arithmetic ground truth, with no real audio.
 
 Cannot run Suno. The WAV handoff is the boundary.
 
