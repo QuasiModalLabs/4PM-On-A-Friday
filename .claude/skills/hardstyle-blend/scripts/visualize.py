@@ -279,10 +279,11 @@ def main() -> int:
 
     segs = []
     if args.tracklist:
-        tl = json.loads(Path(args.tracklist).read_text())
+        tl = json.loads(Path(args.tracklist).read_text(encoding="utf-8"))
         segs = tl.get("tracklist", [])
     if args.text:
-        extra = json.loads(Path(args.text).read_text()).get("tracks", [])
+        extra = json.loads(
+            Path(args.text).read_text(encoding="utf-8")).get("tracks", [])
         segs = merge_text(segs, extra, total)
     if not segs:
         segs = [{"position": 1, "title": Path(args.audio).stem, "start_s": 0.0}]
