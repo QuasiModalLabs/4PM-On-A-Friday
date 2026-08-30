@@ -81,7 +81,7 @@ makes it cheap — keep that file good.
 **Eleven Music has already been evaluated. Do not propose it as an untested
 idea.** Official API, licensed training data, no cookie, no captcha — better on
 every platform axis. It lost anyway: the same prompts through both services,
-scored by three Toronto hard-dance listeners, and Suno won on vocal chops and
+scored by three Toronto ABGs, and Suno won on vocal chops and
 non-generic character while Eleven won on audio distinction. Not close.
 
 That result is decisive here because the vocal chops are the product. Cleaner

@@ -76,9 +76,9 @@ API — licensed training data, no cookie, no captcha, no scraper. On paper it
 removes the entire problem.
 
 So it was tested rather than assumed. The same prompts went through both
-services and the output was scored by three Toronto hard-dance listeners — VELD
-regulars, people who hear this genre constantly and are not audio engineers,
-which is the right panel for output whose only job is to land on a dancefloor.
+services and the output was scored by three Toronto ABGs — VELD regulars who
+hear this genre constantly and are not audio engineers, which is exactly the
+right panel for output whose only job is to land on a dancefloor.
 
 The result was not close, and it split cleanly:
 
