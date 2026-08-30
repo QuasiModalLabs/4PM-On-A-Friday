@@ -1,0 +1,9 @@
+tracks/
+output/
+input/*.csv
+input/*.xlsx
+*.wav
+*.mp3
+*.mp4
+__pycache__/
+.venv/

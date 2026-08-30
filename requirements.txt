@@ -1,0 +1,8 @@
+# Loose lower bounds on purpose. librosa 1.x needs Python 3.11+; 0.10/0.11 work
+# fine here and the APIs used (beat_track, chroma_cqt, rms, spectral_centroid)
+# are stable across all three.
+librosa>=0.10
+soundfile>=0.12
+numpy>=1.23
+pillow>=9.0
+pandas>=1.5
