@@ -57,6 +57,16 @@ there — clashes hide under distortion.
 outgoing track. One with `starts_quiet` true is a good incoming one. Pairing
 them gives you a natural transition for free.
 
+**Chronological ordering is an option worth offering.** If `docs/text.json` has
+a `date` per track, ordering the set as a timeline gives the running order a
+narrative — the business's year, in sequence — which is more interesting than an
+energy curve alone. It also usually produces a decent arc by accident, since
+complaint clusters are naturally the intense stretch.
+
+Where chronology and a good build conflict, say so and let the user choose.
+Do not silently pick one. If you go chronological, note it in the tracklist so
+the reason is visible.
+
 **Refuse tracks that don't fit.** `blend.py` rejects anything needing more than
 15% stretch. If a track is at 130 and the set is at 158, leave it out and say so
 rather than dragging the master tempo to accommodate it.
@@ -122,6 +132,13 @@ nothing to key by hand.
 Write this from the `review-to-hardstyle` output: `hook` is that track's DROP
 line, `review` is the source text. Keep hooks under about five words — longer
 lines wrap and lose their impact at the pulse.
+
+**Entries match audio by filename, not by position.** Entry *i* describes track
+`0(i+1)-<slug>.wav`, so `text.json` stays in the `01-`/`02-` download order it
+was written in and the running order chosen in Stage 2 can differ freely. Add an
+explicit `"file": "03-slug.wav"` key to an entry to pin it. Do not reorder
+`text.json` to match the mix — that breaks the convention and double-shuffles
+the captions.
 
 **Render time is the constraint.** Roughly real-time at 1080p: a ten-minute mix
 takes about ten minutes. Draft at `--size 720` first, then render final at 1080.
