@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Verify the environment before running anything. Run this first.
+r"""Verify the environment before running anything. Run this first.
 
-  Windows : python scripts\\check.py
-  mac/Linux: python3 scripts/check.py
+  Windows : .venv\Scripts\activate.bat   then   python scripts\check.py
+  mac/Linux: source .venv/bin/activate     then   python3 scripts/check.py
+
+Activate first. Installing from the wrong interpreter is the most common way to
+get a passing pip install and a failing pipeline.
 """
 import platform
 import shutil
@@ -11,7 +14,20 @@ from pathlib import Path
 
 ok = True
 WIN = platform.system() == "Windows"
-PIP = "pip install -r requirements.txt" + ("" if WIN else " --break-system-packages")
+
+IN_VENV = sys.prefix != sys.base_prefix
+PROJECT_VENV = Path(__file__).resolve().parent.parent / ".venv"
+STRAY_VENV = PROJECT_VENV.is_dir() and not IN_VENV
+ACTIVATE = r".venv\Scripts\activate.bat" if WIN else "source .venv/bin/activate"
+
+# --break-system-packages is for a deliberate global install on a PEP 668
+# distro. Inside a venv it is wrong; on Windows it does not apply. And if this
+# project has a .venv that just isn't active, installing is not the fix at all.
+if STRAY_VENV:
+    PIP = f"{ACTIVATE}   then   pip install -r requirements.txt"
+else:
+    PIP = "pip install -r requirements.txt" + (
+        "" if WIN or IN_VENV else " --break-system-packages")
 
 
 def check(label, passed, hint=""):
@@ -23,9 +39,18 @@ def check(label, passed, hint=""):
             print(f"          -> {hint}")
 
 
-print(f"Platform: {platform.system()} {platform.release()}, Python {sys.version.split()[0]}\n")
+print(f"Platform: {platform.system()} {platform.release()}, Python {sys.version.split()[0]}")
+print(f"Interpreter: {sys.executable}\n")
 
-for mod in ["librosa", "soundfile", "numpy", "PIL", "pandas"]:
+if IN_VENV:
+    check("virtualenv active", True)
+elif STRAY_VENV:
+    check("virtualenv active", False,
+          f"a .venv exists here but is not active. Run:  {ACTIVATE}")
+else:
+    print("  --    virtualenv active (none here; installing globally)")
+
+for mod in ["librosa", "soundfile", "numpy", "PIL", "pandas", "openpyxl"]:
     try:
         __import__(mod)
         check(mod, True)

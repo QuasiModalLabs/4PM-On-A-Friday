@@ -147,9 +147,10 @@ def main() -> int:
     ap.add_argument("--out", default="mix.wav")
     args = ap.parse_args()
 
-    order = json.loads(Path(args.order).read_text())
+    order = json.loads(Path(args.order).read_text(encoding="utf-8"))
     result = blend(order, Path(args.out))
-    Path(args.out).with_suffix(".tracklist.json").write_text(json.dumps(result, indent=2))
+    Path(args.out).with_suffix(".tracklist.json").write_text(
+        json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
     return 0
 

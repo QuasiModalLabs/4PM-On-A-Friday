@@ -6,3 +6,4 @@ soundfile>=0.12
 numpy>=1.23
 pillow>=9.0
 pandas>=1.5
+openpyxl>=3.0        # required for .xlsx; pandas cannot read Excel without it

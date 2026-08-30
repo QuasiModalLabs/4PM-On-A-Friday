@@ -120,7 +120,7 @@ def main() -> int:
         "suggested_master_bpm": round(float(np.median(bpms)), 1),
         "tracks": tracks,
     }
-    Path(args.out).write_text(json.dumps(out, indent=2))
+    Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps(out, indent=2))
     return 0
 

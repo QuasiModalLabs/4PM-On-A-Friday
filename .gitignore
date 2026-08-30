@@ -7,3 +7,10 @@ input/*.xlsx
 *.mp4
 __pycache__/
 .venv/
+
+# Session files hold verbatim customer reviews. The example files are
+# synthetic and stay committed as the format reference.
+docs/session-*.md
+docs/text.json
+!docs/session-EXAMPLE.md
+!docs/text.json.example

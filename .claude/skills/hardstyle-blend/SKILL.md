@@ -57,6 +57,16 @@ there — clashes hide under distortion.
 outgoing track. One with `starts_quiet` true is a good incoming one. Pairing
 them gives you a natural transition for free.
 
+**Chronological ordering is an option worth offering.** If `docs/text.json` has
+a `date` per track, ordering the set as a timeline gives the running order a
+narrative — the business's year, in sequence — which is more interesting than an
+energy curve alone. It also usually produces a decent arc by accident, since
+complaint clusters are naturally the intense stretch.
+
+Where chronology and a good build conflict, say so and let the user choose.
+Do not silently pick one. If you go chronological, note it in the tracklist so
+the reason is visible.
+
 **Refuse tracks that don't fit.** `blend.py` rejects anything needing more than
 15% stretch. If a track is at 130 and the set is at 158, leave it out and say so
 rather than dragging the master tempo to accommodate it.
@@ -123,10 +133,44 @@ Write this from the `review-to-hardstyle` output: `hook` is that track's DROP
 line, `review` is the source text. Keep hooks under about five words — longer
 lines wrap and lose their impact at the pulse.
 
+**Entries match audio by filename, not by position.** Entry *i* describes track
+`0(i+1)-<slug>.wav`, so `text.json` stays in the `01-`/`02-` download order it
+was written in and the running order chosen in Stage 2 can differ freely. Add an
+explicit `"file": "03-slug.wav"` key to an entry to pin it. Do not reorder
+`text.json` to match the mix — that breaks the convention and double-shuffles
+the captions.
+
 **Render time is the constraint.** Roughly real-time at 1080p: a ten-minute mix
-takes about ten minutes. Draft at `--size 720` first, then render final at 1080.
-Square suits LinkedIn and Instagram; pass `--size 1080` and crop later if you
-need vertical.
+takes about ten minutes. Square suits LinkedIn and Instagram; pass `--size 1080`
+and crop later if you need vertical.
+
+**Always do the 1-fps pre-flight before any full render.** Same resolution you
+intend to ship, one frame per second:
+
+```bash
+python3 scripts/visualize.py --audio mix.wav --tracklist mix.tracklist.json \
+    --text text.json --out preflight.mp4 --size 1080 --fps 1
+```
+
+A ten-minute mix takes about half a minute. Pull a frame from each track and
+look at them:
+
+```bash
+ffmpeg -v error -ss 330 -i preflight.mp4 -frames:v 1 -y frame.png
+```
+
+This exists because two separate faults reached a finished 1080 render and
+neither could have been caught by drafting at 720:
+
+- Review text truncated mid-sentence. The line cap was resolution-independent,
+  so the 720 draft was cut in exactly the same place and looked normal.
+- A curly apostrophe rendered as mojibake, from a JSON read that used the
+  platform default encoding. Also identical at every size.
+
+Resolution is rarely what is wrong. Text, hook-to-track matching, and encoding
+are, and all three are visible in a frame — so check frames cheaply and often,
+and spend the full render once. Drafting at 720 is still worth it if you are
+judging composition or font weight, but it is not the correctness gate.
 
 
 Give the tracklist with timestamps, then the file. Keep it short — they want to

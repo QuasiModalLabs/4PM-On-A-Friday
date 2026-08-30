@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -180,7 +181,16 @@ def render_frame(f: dict, i: int, size: int, seg: dict, fonts: dict,
     review = seg.get("review", "")
     if review:
         rf = fonts["body"]
-        lines = wrap(d, f'"{review}"', rf, size - pad * 2)[:4]
+        # Fit as many lines as the band above the progress bar actually holds
+        # -- 6 at 720, 5 at 1080. This was a fixed 4, which silently cut the
+        # longest review mid-sentence at every render size, so drafting at 720
+        # and rendering at 1080 could not reveal or fix it.
+        lh = int(rf.size * 1.35)
+        max_lines = max(1, (int(size * 0.958) - int(size * 0.79)) // lh)
+        lines = wrap(d, f'"{review}"', rf, size - pad * 2)
+        if len(lines) > max_lines:
+            lines = lines[:max_lines]
+            lines[-1] = lines[-1].rstrip(' "') + '..."'
         y = int(size * 0.79)
         for ln in lines:
             d.text((cx - d.textlength(ln, font=rf) / 2, y), ln, font=rf, fill=DIM)
@@ -202,6 +212,57 @@ def render_frame(f: dict, i: int, size: int, seg: dict, fonts: dict,
     return img
 
 
+def track_number(name: str) -> int | None:
+    """Leading digits of a filename: '02-sums-up.wav' -> 2."""
+    m = re.match(r"(\d+)", Path(name).name)
+    return int(m.group(1)) if m else None
+
+
+def merge_text(segs: list, extra: list, total: float) -> list:
+    """Attach hooks and review text to tracklist segments, matched by filename.
+
+    Matching is by file, not by position, because the running order is chosen at
+    blend time and is deliberately not the 01-/02- download order that text.json
+    is written in. Merging by index captions every track with the wrong hook the
+    moment those two differ.
+
+    Three ways to match, in order of preference:
+      1. an explicit "file" key on the text.json entry
+      2. the leading number of the tracklist filename, indexing text.json
+         (entry i describes track i+1) -- this is what the folder convention means
+      3. position, when there is nothing else to go on
+    """
+    if not extra:
+        return segs
+
+    # No tracklist to match against: lay the text out evenly and return.
+    if not segs:
+        return [{**e, "position": i + 1, "start_s": total * i / len(extra)}
+                for i, e in enumerate(extra)]
+
+    by_file = {Path(e["file"]).name: e for e in extra if e.get("file")}
+    unmatched = []
+
+    for i, sg in enumerate(segs):
+        fname = Path(sg.get("file", "")).name
+        e = by_file.get(fname)
+        if e is None:
+            n = track_number(fname)
+            if n is not None and 1 <= n <= len(extra):
+                e = extra[n - 1]
+        if e is None and len(extra) == len(segs):
+            e = extra[i]          # last resort: same length, assume position
+        if e is None:
+            unmatched.append(fname or f"segment {i + 1}")
+            continue
+        sg.update(e)
+
+    if unmatched:
+        print(f"warning: no text.json entry for {', '.join(unmatched)}; "
+              "those tracks fall back to their title", file=sys.stderr)
+    return segs
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--audio", required=True)
@@ -218,15 +279,12 @@ def main() -> int:
 
     segs = []
     if args.tracklist:
-        tl = json.loads(Path(args.tracklist).read_text())
+        tl = json.loads(Path(args.tracklist).read_text(encoding="utf-8"))
         segs = tl.get("tracklist", [])
     if args.text:
-        extra = json.loads(Path(args.text).read_text()).get("tracks", [])
-        for i, e in enumerate(extra):
-            if i < len(segs):
-                segs[i].update(e)
-            else:
-                segs.append({**e, "position": i + 1, "start_s": total * i / len(extra)})
+        extra = json.loads(
+            Path(args.text).read_text(encoding="utf-8")).get("tracks", [])
+        segs = merge_text(segs, extra, total)
     if not segs:
         segs = [{"position": 1, "title": Path(args.audio).stem, "start_s": 0.0}]
 
