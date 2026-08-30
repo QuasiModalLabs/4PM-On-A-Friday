@@ -34,6 +34,18 @@ complaint about a live legal dispute reads as good material.
 
 ## Step 1 — Read and select
 
+**Find the file yourself; do not make the user name it.** If they did not give a
+path, glob `input/` for `*.csv` and `*.xlsx`, ignore anything matching
+`*example*`, and take the most recently modified. Say which file you picked.
+
+Only ask if that turns up nothing, or if two non-example files were modified
+within a few minutes of each other and you cannot tell which is the new export.
+"I dropped the reviews in" plus a filename that is not quite what you expected is
+the common case, and searching beats a round trip.
+
+If nothing is in `input/`, check the user's Downloads and Desktop for a recently
+modified CSV or Excel file before asking — exports frequently never get moved.
+
 Load the file. `.xlsx` needs `pandas` with `openpyxl`; `.csv` needs pandas alone.
 
 **Never call bare `pd.read_csv(path)`.** Review exports routinely come out of
@@ -258,9 +270,23 @@ hunting for a prompt in a chat log later is the friction this removes.
 Source: input/<filename>
 Business: <one line from config/business.md>
 
-Paste each pair into Suno's Advanced tab. Download WAVs to
-`tracks/YYYY-MM-DD/` named `01-<slug>.wav`, `02-<slug>.wav`, ... in this order —
-the numbering is how the visualiser matches tracks to hooks.
+## What to do with this file
+
+1. Open Suno and switch to **Custom / Advanced** mode (the plain prompt box
+   ignores the section tags).
+2. For each track below: copy the **Lyrics** block into the lyrics field, copy
+   the **Styles** block into the styles field, generate.
+3. Download each result. **Anywhere is fine** — your Downloads folder, the
+   desktop, `tracks/`. Do not rename anything.
+4. When they are all downloaded, run:
+
+       python scripts/ingest.py --from <wherever you downloaded them>
+
+   That matches each file to its track by title and moves it into
+   `tracks/YYYY-MM-DD/` under the right number. Add `--dry-run` to preview.
+   Re-run it as many times as you like; it skips what is already in place, so
+   downloading a few at a time is fine.
+5. Tell Claude the tracks are in.
 
 - [ ] 01 — <title>
 - [ ] 02 — <title>
@@ -297,8 +323,8 @@ visualiser has hooks and review text without reconstruction later:
 
 ```json
 {"tracks": [
-  {"title": "Third Time", "hook": "Don't bother.",
-   "date": "2026-03-14",
+  {"title": "Third Time", "file": "01-third-time.wav",
+   "hook": "Don't bother.", "date": "2026-03-14",
    "review": "Third time this month something was wrong with the order..."}
 ]}
 ```
@@ -307,6 +333,13 @@ visualiser has hooks and review text without reconstruction later:
 one — omit it otherwise. No username, ever. `review` is the source text, names already
 stripped. Keep hooks under about five words — longer lines wrap and lose their
 impact at the pulse.
+
+**`file` is the target filename**, `NN-<slug>.wav` matching this track's number
+in the session file. Always write it. It does two jobs: `scripts/ingest.py` uses
+it to put each Suno download under the right name, and `visualize.py` prefers it
+over positional matching when captioning, so a running order that differs from
+the download order still captions correctly. Keep the slug short and recognisable
+— two or three words from the title.
 
 **Then in chat**, give only a short summary: which reviews were picked, the
 variant chosen for each, anything skipped and why. Do not paste the full prompts
