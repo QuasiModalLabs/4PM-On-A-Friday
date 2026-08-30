@@ -12,10 +12,11 @@ input/reviews.csv
       |
       |  skill: review-to-hardstyle
       v
-  Lyrics + Styles prompts  ->  [MANUAL: paste into Suno, download]
+  Lyrics + Styles prompts  ->  [MANUAL: paste into Suno, download anywhere]
                                         |
+                                        |  python scripts/ingest.py --from <folder>
                                         v
-                              tracks/YYYY-MM-DD/*.wav
+                              tracks/YYYY-MM-DD/NN-<slug>.wav
                                         |
                                         |  skill: hardstyle-blend
                                         v
@@ -24,10 +25,15 @@ input/reviews.csv
 
 ## First run
 
-`python scripts/check.py` (Windows) or `python3 scripts/check.py` (mac/Linux)
-verifies librosa, soundfile, pillow, pandas, ffmpeg, and fonts, and prints
-platform-specific fixes. Do not start debugging pipeline failures until it
-passes — most early problems are a missing ffmpeg.
+Activate the venv first, then `python scripts/check.py` (Windows) or
+`python3 scripts/check.py` (mac/Linux). It verifies librosa, soundfile, pillow,
+pandas, openpyxl, ffmpeg, and fonts, and prints platform-specific fixes. Do not
+start debugging pipeline failures until it passes — most early problems are a
+missing ffmpeg.
+
+It fails hard if a `.venv` exists here and is not active, because the packages
+then install into a different interpreter from the one that runs the pipeline,
+and every symptom afterwards is misleading.
 
 **Check the platform before writing any shell command.** This project runs on
 Windows as often as Linux. On Windows: `python` not `python3`, no
@@ -81,18 +87,34 @@ the prompts in paste order with a checklist; `docs/text.json` holds hooks and
 source reviews for the visualiser. Write both in the same run. Reconstructing
 `text.json` later from downloaded filenames is tedious and lossy.
 
-**Filename order is load-bearing.** WAVs go into `tracks/YYYY-MM-DD/` as
-`01-<slug>.wav`, `02-<slug>.wav`, ... matching the session file. That numbering
-is how the visualiser matches audio to hooks. It is not the playback order —
-that gets decided in the blend stage.
+**Do not rename Suno downloads by hand.** `python scripts/ingest.py --from
+<folder>` matches each download to a track in `docs/text.json` by title and moves
+it into `tracks/YYYY-MM-DD/` as `01-<slug>.wav`, `02-<slug>.wav`, ... Download
+anywhere; re-running is a no-op, so batches are fine. Renaming by hand is how
+files end up in the wrong folder, and swapping two tracks' positions produces
+renames that collide unless done in the right order.
+
+**Filename order is load-bearing, and `text.json` carries it.** Each track's
+`file` field is the target name, and it is what the visualiser matches audio to
+hooks by — not list position. That means the download order and the playback
+order are independent: playback gets decided in the blend stage and needs no
+renaming. Always write `file`.
 
 **Timestretch in blend, never resample.** Resampling would shift every track's
 key and undo the harmonic ordering. `blend.py` uses ffmpeg `atempo`, which holds
 pitch. Corrections inside a hardstyle set land at 1-4%, well within clean range.
 
-**Draft the video at 720, render final at 1080.** Render time is roughly
-real-time, so a ten-minute set is a ten-minute render. Do not discover a
-typo at 1080.
+**Pre-flight every render at `--fps 1`, then render final at 1080.** Render time
+is roughly real-time, so a ten-minute set is a ten-minute render — but a
+full-length pass at one frame per second takes about thirty seconds and
+exercises the whole real code path. Pull a frame per track with
+`ffmpeg -ss <sec> -i preflight.mp4 -frames:v 1 frame.png` and read the text.
+
+The faults that reach a finished render are resolution-independent — a line cap
+that truncated a review mid-sentence, a JSON read that rendered an apostrophe as
+mojibake — so drafting at 720 reproduces them exactly and reveals nothing. Draft
+at 720 to judge composition or font weight; the 1-fps pass is the correctness
+gate.
 
 **Strip staff names from reviews.** Service reviews name people constantly. A
 track chanting a named employee's failures is a different and much worse
@@ -113,7 +135,11 @@ Cannot run Suno. The WAV handoff is the boundary.
 - `tracks/YYYY-MM-DD/` — Suno downloads for that session. Gitignored.
 - `output/` — mixes, videos, tracklists. Gitignored.
 - `docs/session-YYYY-MM-DD.md` — prompts and checklist for that session.
-- `docs/text.json` — hooks and review text for the visualiser.
+  Gitignored; quotes reviews verbatim.
+- `docs/text.json` — hooks, `file` targets, and review text for the visualiser.
+  Gitignored; quotes reviews verbatim.
+- `docs/session-EXAMPLE.md`, `docs/text.json.example` — synthetic. Committed as
+  the format reference, and the gitignore negates them explicitly.
 
 Nothing audio or customer-facing is committed. The repo holds skills and
 scripts only.
