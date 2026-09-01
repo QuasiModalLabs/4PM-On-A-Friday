@@ -128,6 +128,18 @@ If the user explicitly asks to credit reviewers, say what that means in practice
 before doing it — the name ends up in a video that may be posted publicly — and
 let them decide with that in front of them.
 
+**Why the rule is this strict.** Verbatim theatre — plays built from real
+people's recorded speech — is the closest established practice to what this
+skill does, and it borrows its ethics from oral history: interviewees consent,
+they know how their words will be used, and they can withdraw them. A reviewer
+has done none of that. They wrote a complaint to a shop, not a lyric, and they
+cannot take it back once it is a chorus. The standing description of the
+verbatim practitioner is "mouthpiece and censor all at once", which is exactly
+the position here: nothing forces the choice of what to amplify except the
+person making it. That is the whole reason for the no-usernames rule, the
+staff-name rule, and for treating "who is this for" in `config/business.md` as
+load-bearing rather than decorative.
+
 Then **curate**. Do not generate a song per row.
 
 Good source reviews have:
@@ -164,6 +176,12 @@ in it makes a better raw track than its rating suggests.
 
 ## Step 3 — Write the lyrics
 
+**The form has a name.** What this step does is *erasure*: a found-poetry
+technique where the poem is made by removing from a source text rather than
+composing over it, usually a source nobody thought of as poetic. That is the
+frame to write in. The lyric is already inside the review; the work is deciding
+what to take out.
+
 **Rules that matter most:**
 
 Use the reviewer's actual words. Lift phrases verbatim. You may cut, reorder,
@@ -181,12 +199,63 @@ The load-bearing phrases stay untouched: the drop line, and whatever concrete
 detail makes the review specific rather than generic. Those are the reason the
 track works, and they are the first thing a rhyme is tempted to smooth away.
 
-The test for any addition is whether the reviewer would still recognise their
-own complaint and still stand behind what the track now says on their behalf.
-If not, cut the addition — a slightly rougher line is a cheap price.
+Two tests for any addition, and it has to pass both. First, the erasure test:
+could this line have been produced by deleting from the review rather than
+writing over it? Second, the standing-behind test: would the reviewer still
+recognise their own complaint and still stand behind what the track now says on
+their behalf? If either fails, cut the addition — a slightly rougher line is a
+cheap price.
 
-Keep lines short. Hardstyle vocals are chanted, not sung. Four to seven words per
-line. Long lines will not fit the rhythm and Suno will mangle them.
+Keep lines short. Hardstyle vocals are chanted, not sung. **Count syllables, not
+words** — four to eight per chanted line. Word count is the wrong unit: "always
+clean and organized" is four words and seven syllables, "an hour just for milk"
+is five words and five syllables, and it is the syllables that have to fit.
+Long lines will not fit the rhythm and Suno will mangle them.
+
+### Prosody — the part that decides whether a line lands
+
+A chanted line is a rhythm before it is a sentence. Three things settle it:
+
+**Start the payoff on a stressed syllable.** A stressed syllable in a weak
+musical position is a "greedy" spot: it sounds hurried, and it costs the
+listener the illusion of a real person making a real statement. That illusion is
+the entire product here — a flat sentence from an actual customer — so it is
+worth more than a tidy rhyme. "ROLL-back" is a trochee and lands on the
+downbeat. "com-PLETE shopping place" opens unstressed and hits softer. Trimming
+a leading unstressed word is usually free: "Just for milk" beats "It was just
+for milk".
+
+**Choose the line ending on purpose.** An open vowel at the end sustains and a
+crowd can hold it — "on the FLOOR", "at this PLACE". A hard consonant cannot be
+held and can only stab — "just for MILK", "roll-BACK". Both are useful; a drop
+built on a stab wants more repetitions and shorter gaps than one built on a
+sustain. Notice which one the payoff line gives you before building the drop
+around it.
+
+**Match resolution to the review.** Even numbers of lines feel resolved, odd
+numbers push forward; symmetrical line lengths settle, asymmetrical ones
+unsettle. So a complaint that never resolves — no apology, no fix — should not
+be handed a tidy four-line drop. Give it three lines, or a fourth that is
+shorter than the rest. A five-star review can have the even, symmetrical version;
+it earned it.
+
+**Write the call down.** Put a **Prosody** line in the session file for each
+track: the payoff line, its syllable count, whether it opens stressed, whether
+it ends open or closed, and what the drop does about it. This is judgement, not
+measurement — there is no pronouncing dictionary in this project and adding one
+would fail on exactly the brand names and misspellings worth chanting. Writing
+the call down costs nothing and makes it checkable: the user can say the line
+out loud and disagree in five seconds, which beats finding out in Suno. Say so
+when a line breaks a guide and is kept anyway, and why.
+
+Two cheap checks before committing to a payoff line:
+
+- **Say it eight times out loud.** If you feel ridiculous and the line still
+  holds, it is a hook. If it stops meaning anything by the fourth pass, it is a
+  sentence, not a chant.
+- **Leave a hole in front of it.** Cutting everything for half a second before
+  the hook is standard practice in dance music, and it costs one direction:
+  `[Build: silence, then one voice]`.
 
 Repeat and truncate. This is the core chopping technique: state a phrase, repeat
 it, then break it down into a fragment.
@@ -413,6 +482,10 @@ the five are read together. Lay the drafts side by side and check:
   colon; parentheses hold answer lines and ad-libs only.
 - **Every section tag is a canonical one**, with anything custom after a
   colon. No `[Vocal Chop]`, no `[Final Drop]`.
+- **Each payoff line starts on a stressed syllable**, and its ending —
+  sustaining vowel or stabbing consonant — matches how its drop is built.
+- **Resolution matches the review.** Unresolved complaints should not all
+  have tidy even-numbered drops.
 - **The BPMs are spread**, not clustered in a three-beat band. The blend stage
   timestretches onto one master tempo and corrections stay clean at 1–4%, so a
   set spanning 150 to 172 is a feature; five tracks at 155 waste the range.
@@ -465,6 +538,8 @@ Business: <one line from config/business.md>
 **Source review:** <original text>
 **Read:** <one line: tone, chosen variant, why>
 **Shape:** <A-E, and one line on why this review wanted it>
+**Prosody:** <the payoff line: syllable count, stressed or unstressed opener,
+open or closed ending, and what the drop does about it>
 
 ### Lyrics
 ```text
