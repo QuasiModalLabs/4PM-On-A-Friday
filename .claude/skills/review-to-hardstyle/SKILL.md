@@ -198,44 +198,154 @@ Nobody apologised.
 Nobody... nobody...
 ```
 
+Chopping is the principle; that triplet is only its most obvious form, and
+reaching for it in every section of every track is what makes five tracks sound
+like one track five times. These chop just as hard:
+
+**Truncation ladder** — shed a word per pass, so the phrase decays in place.
+
+```
+An hour just for milk.
+An hour just for milk.
+An hour just for.
+An hour.
+```
+
+**Isolation** — one word, alone, given a whole bar.
+
+```
+Locker.
+Locker.
+No one arrived.
+```
+
+**Call and answer** — split lifted phrases across two deliveries.
+
+```
+I went for baby milk.
+(No one arrived.)
+Which is in locker.
+(No one arrived.)
+```
+
+Parentheses are the one thing Suno *sings* rather than obeys — it reads them as
+a backing vocal set behind the lead, which is exactly what an answer line wants.
+This is the only place they belong. Directions go in square brackets; see below.
+
+**Front-loaded stutter** — hammer the first syllable, then release the phrase.
+
+```
+Ren-ren-renovation is horrible.
+Nothing in stock anywhere.
+```
+
+Hyphens between syllables are the convention Suno reads as a stutter — an em
+dash or a space is not the same instruction.
+
+**Straight repetition** — no fragment at all. Some lines are already the right
+length and lose their weight the moment they are broken.
+
+```
+Why are they on the floor.
+Why are they on the floor.
+Why are they on the floor.
+```
+
+Choose per track from the shape of the sentence, not by habit. A short flat line
+wants isolation or straight repetition; a long clause wants the ladder; a line
+with a natural pause in it wants call and answer.
+
 Find the payoff line. Every usable review has one phrase that carries the whole
 thing. That line goes in the DROP, chanted, usually three or four times. Pick it
 before you write anything else and build backwards.
 
 **Structure — use these tags:**
 
+Suno reads the tags; which ones you use and in what order is your decision. The
+seven-section shape below is the default anthem, not the only one. A set where
+every track runs Intro → Verse → Build → Drop → Breakdown → Drop →
+Outro sounds like one arrangement wearing five different sets of words, however
+different the five reviews were — and that sameness is more audible than any
+individual track's flaws.
+
+**A — Full anthem.** The default. Best for a review with a turn in it: a
+complaint that resolves, praise with a qualifier, anything with a "but".
+
 ```
-[Intro]
-(production direction in parentheses)
+[Intro: direction goes inside the bracket, after a colon]
 Setup line from the review. Dry, spoken, scene-setting.
 
-[Vocal Chop]
+[Verse: chopped vocal stabs]
 The key phrase, repeated and fragmented.
 
-[Build-Up]
-(Pitch shifting up, stutter effect)
+[Build: pitch shifting up, stutter effect]
 Rising tension. Short fragments, escalating.
 
-[DROP]
-The payoff line. Chanted. Repeated 3-4x.
+[Drop]
+The payoff line. Chanted. Repeated 3x.
 
-[Breakdown]
-(Melodic, filtered)
+[Breakdown: melodic, filtered]
 The emotional pivot — the qualifying clause, the "but", the resigned part.
 
-[Final Drop]
+[Drop: final, one new fragment]
 Payoff line again, with one new fragment added.
 
 [Outro]
 One trailing fragment. Let it decay.
 ```
 
-Adapt the structure to the material — a two-line review doesn't need seven
-sections. Drop sections rather than padding them with invented text.
+**Only canonical section names are reliable.** `[Intro]`, `[Verse]`,
+`[Pre-Chorus]`, `[Chorus]`, `[Bridge]`, `[Break]`, `[Breakdown]`, `[Build]`,
+`[Drop]`, `[Outro]`, `[End]`. Invented ones — `[Vocal Chop]`, `[Final Drop]` —
+are not understood and get treated as noise or, worse, read out. Anything custom
+goes after a colon on a canonical tag: `[Drop: final, one new fragment]` does
+what `[Final Drop]` was meant to do, and actually works.
 
-**Parenthetical production directions** go under section tags, not in the sung
-lines. They steer Suno's delivery: `(Dry monologue, low pitch filter)`,
-`(Pitch shifting up, stutter effect)`, `(Screaming, distorted)`.
+**B — Relentless.** Intro → Verse → Build → Drop → Drop (final) → Outro.
+No breakdown, no melodic relief. For raw and uptempo material where a melodic
+pivot would let the listener off the hook.
+
+**C — Cold open.** Start on [Verse: chopped vocal stabs] with no spoken intro. The chant arrives
+with no context and the setup line turns up later, in the breakdown. Good for a
+one-line review with no scene to set.
+
+**D — Breakdown first.** [Breakdown] → [Build] → [Drop] → [Verse] →
+[Drop: final]. The melodic material opens and the chant answers it. Good for warm
+reviews that would read as sarcastic if chanted from the top.
+
+**E — Double hook.** Two payoff lines from the same review, one in [Drop] and
+one in [Drop: final], each chanted in its own right. Only when the review
+genuinely has two — forcing it produces a track with no centre.
+
+Adapt further to the material — a two-line review doesn't need seven sections.
+Drop sections rather than padding them with invented text.
+
+**Production directions go inside the square bracket, after a colon** — never on
+their own line in parentheses. Suno sings parentheses. A line reading
+`(Dry monologue, low pitch filter)` is an instruction to the band delivered to
+the singer, and it comes back as a backing vocal reciting the words "dry
+monologue, low pitch filter". Square brackets are the channel for anything the
+band is meant to do; parentheses are for words a voice is meant to say.
+
+Directions are also where sameness creeps in: `[Build: pitch shifting up,
+stutter effect]` on every track gives five identical builds. Draw from the range,
+and let the review's tone pick.
+
+- Delivery: `[Verse: dry monologue, low pitch filter]`,
+  `[Verse: close mic, almost muttered]`, `[Verse: flat, spoken, no reverb]`,
+  `[Drop: shouted, distorted]`, `[Intro: whispered, doubled]`,
+  `[Verse: sung clean, one voice]`, `[Intro: deadpan, conversational]`
+- Build: `[Build: pitch shifting up, stutter effect]`,
+  `[Build: snare roll, rising filter]`, `[Build: silence, then one voice]`,
+  `[Build: reverse cymbal, gated]`, `[Build: half-time, dragging]`,
+  `[Build: kick drops out, vocal alone]`
+- Breakdown: `[Breakdown: melodic, filtered pads]`, `[Breakdown: piano only]`,
+  `[Breakdown: vocal dry, no music]`, `[Breakdown: wide reverb, distant]`,
+  `[Breakdown: warm supersaw, sidechained]`
+
+Two more formatting levers worth knowing: `*asterisks*` mark a sound effect
+rather than a lyric, and ALL CAPS raises intensity on a line. Both are cheap;
+neither is a substitute for a direction in the bracket.
 
 ## Step 4 — Write the Styles block
 
@@ -254,8 +364,63 @@ reverse bass, distorted kick with pitched tail, screech lead, euphoric supersaw,
 gated pluck, melodic breakdown, pitched vocal chops, hard dance anthem,
 sidechained pads, detuned saw stab, rawstyle screech, kick rumble
 
-Keep it under about 200 characters. Suno responds to dense tag lists, not prose,
-and long style fields dilute.
+The 200-character ceiling applies to v4 and older. v4.5, v5 and v5.5 take about
+1,000, and Suno's own guidance for those versions favours a fuller description of
+how the arrangement progresses over a bare tag list. Dense tags still work and
+stay the default here because they are easy to compare across five tracks; reach
+for the longer form when a track needs its shape described rather than its
+ingredients listed. Either way the field should not be padded — every descriptor
+competes with the others for weight.
+
+**Say where the vocal goes.** "vocal chops in the drop" places them; a bare
+"pitched vocal chops" tag leaves Suno to guess, and it guesses the same way every
+time.
+
+**Negatives do not belong here.** "no melodic relief", "no breakdown" and the
+like are unreliable in the style field — Suno reads the noun and not the "no".
+Put them in the **Exclude Styles** field under Advanced Options, which is the
+real control, and give the session file an **Exclude** block for that track so
+the user knows to paste it.
+
+**Vary the tags across the set.** `reverse bass` and `pitched vocal chops` fit
+almost any hardstyle track, which is exactly why they end up in all five and
+stop distinguishing anything. Two or three signatures per block, chosen because
+this track needs them: a euphoric track earns `euphoric supersaw` and
+`melodic breakdown`, a raw one earns `rawstyle screech` and `kick rumble`, and
+neither needs the other's. If two Styles blocks in a session differ only by BPM
+and one adjective, at least one of them is not describing its own track.
+
+The variant and BPM lead, but the rest of the order is free — putting the mood
+first, or the vocal treatment, changes what Suno weights.
+
+## Step 5 — Check the set before writing it out
+
+Sameness is invisible while writing one track at a time and obvious the moment
+the five are read together. Lay the drafts side by side and check:
+
+- **No two tracks share a section skeleton.** Five copies of shape A is the
+  failure this step exists to catch. Vary it or say why the material forced it.
+- **No parenthetical appears more than twice**, and no two build-ups are
+  identical.
+- **The chop techniques differ.** If every [Vocal Chop] is state / repeat /
+  fragment, three of them are on autopilot.
+- **No two drops have the same shape.** Payoff × 3 plus a tag is one option, not
+  the format — try × 2 answered by a second line, a one-word stab, or the line
+  split across two deliveries.
+- **The Styles blocks differ by more than BPM.**
+- **No line stands alone in parentheses as a direction.** Parentheses are
+  sung. Every direction belongs inside its section's square bracket, after a
+  colon; parentheses hold answer lines and ad-libs only.
+- **Every section tag is a canonical one**, with anything custom after a
+  colon. No `[Vocal Chop]`, no `[Final Drop]`.
+- **The BPMs are spread**, not clustered in a three-beat band. The blend stage
+  timestretches onto one master tempo and corrections stay clean at 1–4%, so a
+  set spanning 150 to 172 is a feature; five tracks at 155 waste the range.
+
+Fixing this later means regenerating in Suno, so it is worth the minute now.
+When something repeats for a real reason — two reviews that genuinely are the
+same complaint — keep it and note it in the session file rather than inventing
+difference the reviews do not support.
 
 ## Output format
 
@@ -275,7 +440,8 @@ Business: <one line from config/business.md>
 1. Open Suno and switch to **Custom / Advanced** mode (the plain prompt box
    ignores the section tags).
 2. For each track below: copy the **Lyrics** block into the lyrics field, copy
-   the **Styles** block into the styles field, generate.
+   the **Styles** block into the styles field, generate. Where a track has an
+   **Exclude** block, paste it into Exclude Styles under Advanced Options.
 3. Download each result. **Anywhere is fine** — your Downloads folder, the
    desktop, `tracks/`. Do not rename anything.
 4. When they are all downloaded, run:
@@ -298,6 +464,7 @@ Business: <one line from config/business.md>
 
 **Source review:** <original text>
 **Read:** <one line: tone, chosen variant, why>
+**Shape:** <A-E, and one line on why this review wanted it>
 
 ### Lyrics
 ```text
@@ -307,6 +474,11 @@ Business: <one line from config/business.md>
 ### Styles
 ```text
 <styles block>
+```
+
+### Exclude
+```text
+<only when the track needs something kept out>
 ```
 
 ---
@@ -352,26 +524,27 @@ into chat as well — the file is where they live.
 Source: *"Third time this month something was wrong with the order. Nobody apologised. Rude when I asked about it. Don't bother."*
 
 Read: cold, repeat-offence anger with a dismissive sign-off. Raw hardstyle, 158.
+Shape B, relentless — the sign-off is the whole point and a melodic breakdown
+would soften it. Note the drop is payoff x3 answered by a lifted line, and the
+chop is state / repeat / fragment.
 
 ```
-[Intro]
-(Dry monologue, low pitch filter)
+[Intro: dry monologue, low pitch filter]
 Third time this month...
 Something was wrong.
 
-[Vocal Chop]
+[Verse: chopped vocal stabs]
 Wrong with the order.
 Wrong with the order.
 Nobody apologised.
 Nobody... nobody...
 
-[Build-Up]
-(Pitch shifting up, stutter effect)
+[Build: pitch shifting up, stutter effect]
 Rude when I asked.
 Rude when I asked.
 Third time. Third time.
 
-[DROP]
+[Drop]
 Don't bother.
 Don't bother.
 Don't bother.
@@ -388,38 +561,38 @@ Styles: `raw hardstyle, 158 BPM, distorted kick with pitched tail, rawstyle scre
 Source: *"Waited 25 minutes for a flat white. The staff were clearly slammed and one guy was doing three jobs at once. He apologised twice. Coffee was genuinely excellent when it finally arrived."*
 
 Read: frustration with real warmth underneath and a positive resolution — the breakdown carries the turn. Raw-melodic, 155.
+Shape A, full anthem — this review has the turn that shape A exists for. Its
+drop stacks four different lifted phrases rather than repeating one, which is a
+third drop shape again.
 
 ```
-[Intro]
-(Dry, filtered, close mic)
+[Intro: dry, filtered, close mic]
 Waited twenty-five minutes.
 Twenty-five minutes.
 
-[Vocal Chop]
+[Verse: chopped vocal stabs]
 Clearly slammed.
 Clearly slammed.
 Three jobs at once.
 Three jobs... three jobs...
 
-[Build-Up]
-(Pitch shifting up, stutter effect)
+[Build: snare roll, rising filter]
 He apologised twice.
 He apologised twice.
 Twice. Twice. Twice.
 
-[DROP]
+[Drop]
 Twenty-five minutes.
 Three jobs at once.
 Twenty-five minutes.
 Clearly slammed.
 
-[Breakdown]
-(Melodic, warm, filtered pads)
+[Breakdown: melodic, warm, filtered pads]
 Genuinely excellent.
 When it finally arrived.
 Genuinely excellent...
 
-[Final Drop]
+[Drop: final, one new fragment]
 Twenty-five minutes.
 Genuinely excellent.
 Three jobs at once.
