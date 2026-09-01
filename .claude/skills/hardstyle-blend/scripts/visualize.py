@@ -110,12 +110,45 @@ def compute_features(y: np.ndarray, sr: int, fps: int) -> dict:
         p = np.percentile(a, pct)
         return np.clip(a / p, 0, 1.4) if p > 0 else a
 
+    def follow(x, attack_s=0.012, release_s=0.45):
+        """Fast-attack, slow-release envelope over the kick.
+
+        The raw per-frame kick figure is noisy: inside one drop it crosses any
+        given level several times per beat, so anything driving size or colour
+        straight from it chatters rather than pulses -- measured at 51 changes
+        against 15 beats in six seconds. Snapping up on the hit and easing down
+        after it turns that into one movement per kick, which is what the eye
+        reads as being in time.
+
+        Attack stays very short so the visual still lands ON the transient. A
+        slow attack would fix the chatter by making everything late, which is
+        the failure this is meant to remove.
+
+        Release was tuned by measurement, not taste: swept against direction
+        reversals per beat, where a clean pulse is 2.0 -- one rise, one fall.
+        Raw kick measures 4.6-5.7 across three sections of a real set; 0.18 s
+        gives 3.5; 0.45 s gives 2.11 with the peak still landing on the beat
+        and the modulation depth intact. It is longer than a beat at 152 BPM,
+        which is the point -- the hook breathes rather than flickering.
+        """
+        a_att = float(np.exp(-1.0 / max(attack_s * fps, 1e-6)))
+        a_rel = float(np.exp(-1.0 / max(release_s * fps, 1e-6)))
+        out = np.zeros_like(x)
+        prev = 0.0
+        for j, v in enumerate(x):
+            a = a_att if v > prev else a_rel
+            prev = a * prev + (1.0 - a) * float(v)
+            out[j] = prev
+        return out
+
     bars = np.log1p(bars * 8)
     bars = bars / max(np.percentile(bars, 99.5), 1e-9)
 
+    kick_n = norm(kick)
     return {
         "n_frames": n_frames,
-        "kick": norm(kick),
+        "kick": kick_n,
+        "pulse": follow(kick_n),
         "rms": norm(rms),
         "bars": np.clip(bars, 0, 1.3),
     }
@@ -136,6 +169,206 @@ def wrap(draw, text, font, max_w) -> list[str]:
     return lines
 
 
+# How each hardstyle variant moves. One table, one draw routine -- five bespoke
+# effects would drift apart and stop looking like one design.
+#
+# Restrained on purpose: jitter tops out at 3 px and channel split at 4 px on a
+# 1080 frame, fractions of a percent of the width. The set has to survive ten
+# minutes, and an effect that reads as a gimmick on track one is unwatchable by
+# track five. All pixel figures are per 1080 and scale with size.
+#
+#   jitter    px of per-frame displacement, deterministic, kick-weighted
+#   split     px of red/blue channel offset -- the glitch
+#   pulse     extra scale at full kick, e.g. 0.04 = 4% bigger on the beat
+#   warm      shadow colour: warm amber rather than the red used for raw
+#   double    second, wider shadow -- reads as bloom when warm, as grit when red
+#   kick_gate motion only above this kick level, so it hits rather than shimmers.
+#             Set it low: jitter is already multiplied by kick energy, so the
+#             gate is a floor for silence, not the thing shaping the movement.
+#             A high gate on sparse material makes the loudest variant the
+#             stillest one, which is exactly backwards.
+EFFECTS = {
+    "euphoric":    {"jitter": 0.0, "split": 0.0, "pulse": 0.035, "warm": True,
+                    "double": True,  "kick_gate": 0.0},
+    "melodic":     {"jitter": 0.0, "split": 0.0, "pulse": 0.02, "warm": True,
+                    "double": False, "kick_gate": 0.0},
+    "raw-melodic": {"jitter": 1.0, "split": 1.0, "pulse": 0.03, "warm": False,
+                    "double": False, "kick_gate": 0.0},
+    "raw":         {"jitter": 2.0, "split": 3.0, "pulse": 0.0,  "warm": False,
+                    "double": False, "kick_gate": 0.0},
+    "uptempo":     {"jitter": 3.0, "split": 4.0, "pulse": 0.05, "warm": False,
+                    "double": True,  "kick_gate": 0.35},
+}
+DEFAULT_VARIANT = "melodic"
+GLOW_STEP = 8          # quantisation of the kick glow; see _tinted
+SCALE_STEPS = 24       # levels across a variant's pulse range
+
+# Step 2 of review-to-hardstyle maps tone to variant, and each variant to a BPM
+# band. Read backwards, a track's original BPM is a usable guess at its variant
+# -- which is what makes this work on a text.json written before `variant`
+# existed. Bands are the upper bound of each; anything faster is uptempo.
+BPM_BANDS = [(152, "euphoric"), (155, "melodic"), (157, "raw-melodic"),
+             (160, "raw")]
+
+
+def variant_for(seg: dict) -> str:
+    """Which variant drives this track's hook, in order of authority.
+
+    1. an explicit "effect" on the entry -- a deliberate override
+    2. "variant", written by review-to-hardstyle from the review's tone
+    3. the track's original BPM, read back through Step 2's own bands
+    4. the default
+
+    The tone call is judgement made upstream while reading the review. Deriving
+    it from the audio would be re-deriving something already decided, and worse:
+    BPM only separates the variants because Step 2 assigned the tempos in the
+    first place.
+    """
+    for key in ("effect", "variant"):
+        v = seg.get(key)
+        if isinstance(v, str) and v.strip().lower() in EFFECTS:
+            return v.strip().lower()
+    bpm = seg.get("original_bpm")
+    if isinstance(bpm, (int, float)):
+        for limit, name in BPM_BANDS:
+            if bpm <= limit:
+                return name
+        return "uptempo"
+    return DEFAULT_VARIANT
+
+
+def effect_params(seg: dict, size: int) -> dict:
+    """EFFECTS row for this segment, with pixel figures scaled to the frame."""
+    p = dict(EFFECTS[variant_for(seg)])
+    scale = size / 1080.0
+    p["jitter"] *= scale
+    p["split"] *= scale
+    return p
+
+
+def frame_jitter(i: int, amount: float) -> tuple[float, float]:
+    """Displacement for frame i. A pure function of i, never global random.
+
+    Renders have to be reproducible: the same mix rendered twice must give the
+    same file, or the 1-fps pre-flight stops describing the real render.
+    """
+    if amount <= 0:
+        return 0.0, 0.0
+    h = (i * 2654435761) & 0xFFFFFFFF          # Knuth multiplicative hash
+    dx = ((h & 0xFFFF) / 65535.0) * 2.0 - 1.0
+    dy = ((h >> 16) / 65535.0) * 2.0 - 1.0
+    return dx * amount, dy * amount
+
+
+_HOOK_CACHE: dict = {}
+
+
+def hook_layer(hook: str, font, size: int, max_w: int) -> Image.Image:
+    """The wrapped hook drawn once into an RGBA layer, cached per track.
+
+    The hook does not change for the length of a track, but the old code redrew
+    every line with d.text() on every frame. Drawing it once and compositing the
+    result pays for the effects: the extra work per frame is a couple of pastes
+    of an existing layer rather than fresh glyph rasterisation.
+    """
+    key = (hook, size, max_w, id(font))
+    layer = _HOOK_CACHE.get(key)
+    if layer is not None:
+        return layer
+
+    probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    lines = wrap(probe, hook.upper(), font, max_w)
+    lh = int(font.size * 1.15)
+    w = max(int(probe.textlength(ln, font=font)) for ln in lines) if lines else 1
+    layer = Image.new("RGBA", (max(w, 1), max(lh * len(lines), 1)), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(layer)
+    y = 0
+    for ln in lines:
+        ld.text(((layer.width - probe.textlength(ln, font=font)) / 2, y),
+                ln, font=font, fill=(255, 255, 255, 255))
+        y += lh
+    _HOOK_CACHE[key] = layer
+    return layer
+
+
+_TINT_CACHE: dict = {}
+
+
+def _tinted(layer: Image.Image, colour: tuple) -> Image.Image:
+    """Recolour the cached white layer, keeping its alpha.
+
+    Cached, because building these was the whole cost of the effect: up to five
+    tinted copies per frame, each a full-width RGBA allocation. The colours that
+    vary with kick energy are quantised (GLOW_STEP), so a track converges on a
+    handful of distinct tints and the pastes become the only per-frame work.
+    """
+    key = (id(layer), colour)
+    hit = _TINT_CACHE.get(key)
+    if hit is not None:
+        return hit
+    solid = Image.new("RGBA", layer.size, colour + (255,))
+    solid.putalpha(layer.getchannel("A"))
+    _TINT_CACHE[key] = solid
+    return solid
+
+
+def draw_hook(img: Image.Image, layer: Image.Image, cx: int, top: int,
+              k: float, p: dict, i: int) -> None:
+    """Composite the hook with this variant's motion, shadow and split."""
+    moving = k >= p["kick_gate"]
+    if p["pulse"] > 0:
+        # Quantised across THIS pulse's range, not across absolute scale. The
+        # first version used 1/16 steps of absolute scale -- coarser than the
+        # entire 0.02-0.08 pulse range, so every variant collapsed to one or
+        # two sizes and the swell became a comparator that snapped between
+        # them. That single bug produced both the popping and the apparent
+        # loss of sync. SCALE_STEPS levels across the range keeps the cache
+        # small while the movement stays continuous.
+        step = round(k * SCALE_STEPS) / SCALE_STEPS * p["pulse"]
+        scale = 1.0 + step
+    else:
+        step, scale = 0.0, 1.0
+    if abs(scale - 1.0) > 1e-4:
+        if abs(step) > 1e-6:
+            key = ("scaled", id(layer), step)
+            cached = _HOOK_CACHE.get(key)
+            if cached is None:
+                cached = layer.resize(
+                    (max(1, int(layer.width * scale)),
+                     max(1, int(layer.height * scale))), Image.BILINEAR)
+                _HOOK_CACHE[key] = cached
+            layer = cached
+
+    # Weighted by kick, not flat. Flat jitter shimmers through breakdowns and
+    # silence, which reads as a broken font rather than a reaction to anything;
+    # weighting ties the movement to the thing it is supposed to be reacting to.
+    jx, jy = frame_jitter(i, p["jitter"] * k if moving else 0.0)
+    x = int(cx - layer.width / 2 + jx)
+    y = int(top + jy)
+
+    # Quantised so the tint cache actually hits. At 60 levels every frame
+    # invented a new colour and rebuilt every layer; at 8 the step is invisible
+    # and a track settles into a handful of cached tints.
+    glow = int(k * 60) // GLOW_STEP * GLOW_STEP
+    shadow = (min(255, 120 + glow), 90, 40) if p["warm"] \
+        else (min(255, 90 + glow), 40, 40)
+
+    if p["double"]:
+        off = int(4 * (1 + k))
+        img.paste(_tinted(layer, tuple(int(c * 0.55) for c in shadow)),
+                  (x + off, y + off), layer)
+    img.paste(_tinted(layer, shadow), (x + 2, y + 2), layer)
+
+    split = p["split"] * (k if moving else 0.0)
+    if split >= 1.0:
+        s = int(split)
+        img.paste(_tinted(layer, (200, 30, 30)), (x - s, y), layer)
+        img.paste(_tinted(layer, (30, 60, 200)), (x + s, y), layer)
+
+    body = (255, min(255, 200 + glow), min(255, 200 + glow))
+    img.paste(_tinted(layer, body), (x, y), layer)
+
+
 def render_frame(f: dict, i: int, size: int, seg: dict, fonts: dict,
                  t: float, total: float) -> Image.Image:
     img = Image.new("RGB", (size, size), BG)
@@ -143,6 +376,9 @@ def render_frame(f: dict, i: int, size: int, seg: dict, fonts: dict,
     cx, cy = size // 2, size // 2
 
     k = float(f["kick"][i])
+    # The hook follows the smoothed envelope; the bars keep the raw figure,
+    # where per-frame detail is the point.
+    hk = float(f.get("pulse", f["kick"])[i])
     pad = int(size * 0.07)
 
     # --- spectrum bars, mirrored around the centre line -----------------
@@ -159,23 +395,12 @@ def render_frame(f: dict, i: int, size: int, seg: dict, fonts: dict,
             else (shade, shade, min(255, int(shade * 1.05)))
         d.rectangle([x0, bar_y - h, x0 + bw * 0.72, bar_y + h * 0.35], fill=col)
 
-    # --- hook text, scaled by kick energy -------------------------------
+    # --- hook text: kick energy plus this track's variant ----------------
     hook = seg.get("hook") or seg.get("title", "")
     if hook:
-        base = fonts["hook"]
-        lines = wrap(d, hook.upper(), base, size - pad * 2)
-        lh = int(base.size * 1.15)
-        y = cy - (len(lines) * lh) // 2 - int(size * 0.14)
-        glow = int(k * 60)
-        for ln in lines:
-            w = d.textlength(ln, font=base)
-            x = cx - w / 2
-            if glow > 8:
-                d.text((x + 2, y + 2), ln, font=base,
-                       fill=(min(255, 90 + glow), 40, 40))
-            d.text((x, y), ln, font=base,
-                   fill=(255, min(255, 200 + glow), min(255, 200 + glow)))
-            y += lh
+        layer = hook_layer(hook, fonts["hook"], size, size - pad * 2)
+        top = cy - layer.height // 2 - int(size * 0.14)
+        draw_hook(img, layer, cx, top, hk, effect_params(seg, size), i)
 
     # --- source review, small, at the bottom ----------------------------
     review = seg.get("review", "")

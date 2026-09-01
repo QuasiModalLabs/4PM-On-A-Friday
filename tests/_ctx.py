@@ -28,6 +28,9 @@ if str(SCRIPTS) not in sys.path:
 import loudness as L  # noqa: E402
 import master as M  # noqa: E402
 import blend as B  # noqa: E402
+import visualize as V  # noqa: E402
+
+N_BARS = V.N_BARS
 
 SR = L.SR
 SECS = 4.0

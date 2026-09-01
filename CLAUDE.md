@@ -47,7 +47,7 @@ python -m unittest discover -s tests          (Windows)
 python3 -m unittest discover -s tests         (mac/Linux)
 ```
 
-144 tests, about 45 seconds, no new dependencies — stdlib `unittest`, for the
+176 tests, about 45 seconds, no new dependencies — stdlib `unittest`, for the
 same reason `pyloudnorm` was rejected. Run it after touching anything under the
 skill's `scripts/`.
 
@@ -210,7 +210,8 @@ Cannot run Suno. The WAV handoff is the boundary.
 - `output/` — mixes, videos, tracklists. Gitignored.
 - `docs/session-YYYY-MM-DD.md` — prompts and checklist for that session.
   Gitignored; quotes reviews verbatim.
-- `docs/text.json` — hooks, `file` targets, and review text for the visualiser.
+- `docs/text.json` — hooks, `file` targets, `variant`, and review text for the
+  visualiser.
   Gitignored; quotes reviews verbatim.
 - `docs/session-EXAMPLE.md`, `docs/text.json.example` — synthetic. Committed as
   the format reference, and the gitignore negates them explicitly.
