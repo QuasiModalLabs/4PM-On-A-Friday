@@ -47,7 +47,7 @@ python -m unittest discover -s tests          (Windows)
 python3 -m unittest discover -s tests         (mac/Linux)
 ```
 
-136 tests, about 45 seconds, no new dependencies — stdlib `unittest`, for the
+144 tests, about 45 seconds, no new dependencies — stdlib `unittest`, for the
 same reason `pyloudnorm` was rejected. Run it after touching anything under the
 skill's `scripts/`.
 

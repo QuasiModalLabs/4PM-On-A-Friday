@@ -426,12 +426,33 @@ Comma-separated tags, densest first. Include, in roughly this order:
 4. Mood, derived from the review
 5. Any business-context flavour
 
-**Hardstyle production vocabulary** — draw on these, they're what the genre
-actually sounds like:
+**Hardstyle production vocabulary**, grouped by what it controls. Take two or
+three signatures per track, **from different families** — three lead words say
+much less than a kick, a lead and a space.
 
-reverse bass, distorted kick with pitched tail, screech lead, euphoric supersaw,
-gated pluck, melodic breakdown, pitched vocal chops, hard dance anthem,
-sidechained pads, detuned saw stab, rawstyle screech, kick rumble
+- **Kick character:** distorted kick with pitched tail, kick rumble, short punchy
+  kick, long distorted tail, overdriven gabber-style kick, half-time kick,
+  double kick, reverse-bass kick pattern
+- **Low end:** reverse bass, offbeat bass, sub rumble, rolling bassline
+- **Lead and screech:** rawstyle screech, screech growl, euphoric supersaw,
+  detuned saw stab, gated pluck, hoover lead, acid line, plucked bell lead,
+  pitched siren
+- **Breakdown texture:** melodic breakdown, sidechained pads, piano only,
+  strings, warm supersaw, filtered pad swell, music-box lead
+- **Vocal treatment:** pitched vocal chops, chopped vocal stabs, shouted chant,
+  telephone-filtered vocal, doubled vocal, whispered layer, formant-shifted chop,
+  crowd chant
+- **Era and scene:** early rave stabs, 90s hardcore hoover, Y2K trance lead,
+  underground raw, festival mainstage euphoric, warehouse
+- **Space and mix:** dry and close, cavernous reverb, tape saturation, sidechain
+  pumping, narrow and boxy, wide stereo lead
+
+**Borrowing a neighbour's texture is a production choice; changing the genre tag
+is not.** An overdriven gabber-style kick or a 90s hardcore hoover inside a raw
+hardstyle track adds character and stays inside the tempo band the blend stage
+needs. Writing "gabber" or "frenchcore" as the genre does not — it changes what
+BPM Suno targets, and the set has to land near one master tempo. Vary the
+texture freely; leave the genre and BPM to Step 2.
 
 The 200-character ceiling applies to v4 and older. v4.5, v5 and v5.5 take about
 1,000, and Suno's own guidance for those versions favours a fuller description of
@@ -476,7 +497,9 @@ the five are read together. Lay the drafts side by side and check:
 - **No two drops have the same shape.** Payoff × 3 plus a tag is one option, not
   the format — try × 2 answered by a second line, a one-word stab, or the line
   split across two deliveries.
-- **The Styles blocks differ by more than BPM.**
+- **The Styles blocks differ by more than BPM**, and no two tracks draw their
+  signatures from the same families — if every block is a kick word plus a
+  lead word, the set has one sound described five times.
 - **No line stands alone in parentheses as a direction.** Parentheses are
   sung. Every direction belongs inside its section's square bracket, after a
   colon; parentheses hold answer lines and ad-libs only.
