@@ -140,8 +140,21 @@ full-band pan drops bass correlation to 0.54, and `loudness.mono_compat`
 documents below ~0.9 as where a system summing to a mono sub loses low end.
 With the crossover in place, depth 0.6 measures 0.96.
 
+**`--bilateral-gate 1.0` backs the pan off where the mix is dense.** Constant
+panning is most objectionable through a drop — there is no room for anything to
+move — and most welcome through a breakdown, where there is. The gate scales the
+swing by a slow loudness envelope, so at 1.0 the loud passages sit near centre
+and only the quiet ones travel; measured on a loud/quiet test signal, the loud
+half's balance swing drops to a third of the quiet half's, against parity when
+ungated. 0 is off and stays the default.
+
+The envelope is deliberately slow — half a hertz. Gating on the kick itself
+would flutter the stereo image at 152 BPM, which is worse than the problem.
+
 The report's `bilateral` block gives both renders' correlation, bass correlation
-and mono-sum loss so the cost is visible rather than assumed. As everywhere else
+and mono-sum loss so the cost is visible rather than assumed, plus `gate` and
+`mean_applied_depth` — the average swing after gating, which is the number that
+tells you how much of the effect actually survived. As everywhere else
 in this pipeline, those are measurements and not a claim that it sounds better —
 whether a bar-rate pan is hypnotic or nauseating over ten minutes is a listening
 call, and nobody here can make it for you.
@@ -237,6 +250,37 @@ Write this from the `review-to-hardstyle` output: `hook` is that track's DROP
 line, `review` is the source text. Keep hooks under about five words — longer
 lines wrap and lose their impact at the pulse.
 
+### The hook moves differently per track
+
+Add `"variant"` to an entry — `euphoric`, `melodic`, `raw-melodic`, `raw` or
+`uptempo`, the Step 2 call from `review-to-hardstyle` — and the hook's motion
+follows the track's mood:
+
+| variant | how it behaves |
+|---|---|
+| euphoric | warm double shadow, blooms and swells 4% on the kick |
+| melodic | warm single shadow, a 2% breath — the calmest of the five |
+| raw-melodic | red shadow, slight jitter, a hair of channel split |
+| raw | red shadow, visible jitter and RGB split, no swell |
+| uptempo | all of it, gated so it detonates on the kick rather than shimmering |
+
+Restrained by design: 3 px of jitter and 4 px of split at 1080, fractions of a
+percent of the frame. One visual family with different tempers, not five
+effects — a set is ten minutes long and a gimmick does not survive it.
+
+Every figure is multiplied by kick energy, so a breakdown is still and the
+motion always has something behind it. The swell follows a fast-attack,
+slow-release envelope rather than the raw per-frame kick: the raw figure crosses
+any given level four to six times a beat, so anything driven straight from it
+chatters instead of pulsing. The release is tuned by measurement -- direction
+reversals per beat, where 2.0 is one clean rise and fall. Frame jitter is a pure function of the
+frame index, so a re-render is identical.
+
+Without `variant`, the visualiser derives one from the track's `original_bpm`
+using the same bands Step 2 assigned, so older `text.json` files still get
+per-track variation. `"effect"` on an entry overrides everything if you want to
+force one by hand.
+
 **Entries match audio by filename, not by position.** Entry *i* describes track
 `0(i+1)-<slug>.wav`, so `text.json` stays in the `01-`/`02-` download order it
 was written in and the running order chosen in Stage 2 can differ freely. Add an
@@ -275,6 +319,20 @@ Resolution is rarely what is wrong. Text, hook-to-track matching, and encoding
 are, and all three are visible in a frame — so check frames cheaply and often,
 and spend the full render once. Drafting at 720 is still worth it if you are
 judging composition or font weight, but it is not the correctness gate.
+
+**The 1-fps pass cannot check motion.** It remains the gate for everything it
+was built for — truncated text, mojibake, hooks on the wrong track are all still
+visible in a single frame. But jitter, swell and split are temporal, and one
+frame per second shows none of them. Judging the hook effects needs its own
+cheap check: fifteen seconds at full frame rate.
+
+```bash
+ffmpeg -v error -ss 0 -t 15 -i mix.wav -c copy slice.wav
+python3 scripts/visualize.py --audio slice.wav --text text.json     --out motion.mp4 --size 540 --fps 30
+```
+
+Two different checks, two different faults. Do not "verify" motion at 1 fps and
+conclude the effects are broken.
 
 
 Give the tracklist with timestamps, then the file. Keep it short — they want to

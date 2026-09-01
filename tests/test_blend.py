@@ -418,3 +418,68 @@ class TestBilateralPan(unittest.TestCase):
         crossings = int(np.sum(np.diff(np.signbit(trim)) != 0))
         span = len(trim) / SR
         self.assertAlmostEqual(crossings / 2 / span, 155.0 / 60.0 / 4.0, delta=0.1)
+
+
+class TestEnergyEnvelope(unittest.TestCase):
+    def test_bounded_zero_to_one(self):
+        y = (np.random.RandomState(4).randn(SR * 3, 2) * 0.2).astype(np.float32)
+        env = B.energy_envelope(y, SR)
+        self.assertGreaterEqual(float(env.min()), 0.0)
+        self.assertLessEqual(float(env.max()), 1.0)
+
+    def test_tracks_loud_and_quiet_sections(self):
+        # Quiet first half, loud second. The envelope has to see the difference.
+        y = np.zeros((SR * 6, 2), dtype=np.float32)
+        rs = np.random.RandomState(5)
+        y[:SR * 3] = rs.randn(SR * 3, 2) * 0.02
+        y[SR * 3:] = rs.randn(SR * 3, 2) * 0.4
+        env = B.energy_envelope(y, SR)
+        self.assertLess(float(np.mean(env[SR:SR * 2])),
+                        float(np.mean(env[SR * 4:SR * 5])))
+
+    def test_silence_is_all_zero(self):
+        env = B.energy_envelope(np.zeros((SR * 2, 2), np.float32), SR)
+        self.assertEqual(float(np.max(env)), 0.0)
+
+
+class TestBilateralGate(unittest.TestCase):
+    def test_gate_zero_is_the_ungated_result(self):
+        # Default has to stay exactly what it was before the gate existed.
+        y = (np.random.RandomState(6).randn(SR * 2, 2) * 0.1).astype(np.float32)
+        np.testing.assert_array_equal(
+            B.bilateral_pan(y, SR, 152.0, 0.6),
+            B.bilateral_pan(y, SR, 152.0, 0.6, gate=0.0))
+
+    def test_gate_holds_the_loud_section_centred(self):
+        # The whole point: dense passages stop moving, quiet ones still travel.
+        y = np.zeros((SR * 8, 2), dtype=np.float32)
+        rs = np.random.RandomState(7)
+        y[:SR * 4] = rs.randn(SR * 4, 2) * 0.02
+        y[SR * 4:] = rs.randn(SR * 4, 2) * 0.4
+        def swing(a):
+            # Level-INDEPENDENT: the balance as a fraction of total energy, so
+            # a quiet passage and a loud one are measured on the same scale.
+            # Dividing by the file's mean energy instead makes the quiet half
+            # look motionless purely because it is quiet.
+            num = a[:, 0] ** 2 - a[:, 1] ** 2
+            den = a[:, 0] ** 2 + a[:, 1] ** 2 + 1e-12
+            return float(np.std(
+                B.box_lowpass(np.stack([num / den] * 2, axis=1), SR, 3.0)[:, 0]))
+
+        ungated = B.bilateral_pan(y, SR, 152.0, 1.0, crossover_hz=1.0)
+        gated = B.bilateral_pan(y, SR, 152.0, 1.0, crossover_hz=1.0, gate=1.0)
+
+        # Ungated, both halves travel about the same amount.
+        self.assertGreater(swing(ungated[SR * 5:SR * 7]),
+                           swing(ungated[SR:SR * 3]) * 0.8)
+        # Gated, the loud half is held far closer to centre than the quiet one.
+        self.assertLess(swing(gated[SR * 5:SR * 7]),
+                        swing(gated[SR:SR * 3]) * 0.5)
+
+    def test_gate_never_inverts_the_pan(self):
+        # 1 - gate*env is clamped by env <= 1, so the swing floors at zero
+        # rather than going negative and flipping the channels.
+        y = (np.random.RandomState(8).randn(SR * 3, 2) * 0.3).astype(np.float32)
+        out = B.bilateral_pan(y, SR, 152.0, 0.6, crossover_hz=1.0, gate=1.0)
+        self.assertTrue(np.all(np.isfinite(out)))
+        self.assertLessEqual(float(np.max(np.abs(out))), 2.0)

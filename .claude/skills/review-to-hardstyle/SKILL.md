@@ -594,10 +594,17 @@ visualiser has hooks and review text without reconstruction later:
 ```json
 {"tracks": [
   {"title": "Third Time", "file": "01-third-time.wav",
-   "hook": "Don't bother.", "date": "2026-03-14",
+   "hook": "Don't bother.", "date": "2026-03-14", "variant": "raw",
    "review": "Third time this month something was wrong with the order..."}
 ]}
 ```
+
+**`variant` is the Step 2 call, written down.** One of `euphoric`, `melodic`,
+`raw-melodic`, `raw`, `uptempo` — exactly the value chosen from the tone table.
+It costs nothing here and the visualiser uses it to decide how that track's hook
+moves on screen, so a euphoric track glows and an uptempo one jumps. Leave it
+out and the visualiser guesses from BPM, which works but re-derives a judgement
+you already made while reading the review.
 
 `hook` is that track's DROP line. `date` is the review date if the source had
 one — omit it otherwise. No username, ever. `review` is the source text, names already

@@ -140,9 +140,27 @@ def box_lowpass(y: np.ndarray, sr: int, cutoff_hz: float,
     return out.astype(np.float32)
 
 
+def energy_envelope(y: np.ndarray, sr: int, smooth_hz: float = 0.5) -> np.ndarray:
+    """Smoothed 0-1 loudness envelope, for deciding where the pan is welcome.
+
+    Deliberately slow -- half a hertz, so it tracks the difference between a
+    breakdown and a drop rather than following individual kicks. Gating on the
+    kick itself would make the image flutter at 152 BPM, which is the opposite
+    of the problem being solved.
+
+    Scaled by the 95th percentile rather than the maximum: one transient should
+    not define "loud" for the whole set.
+    """
+    mag = np.abs(y).mean(axis=1, keepdims=True).repeat(2, axis=1)
+    env = box_lowpass(mag, sr, smooth_hz)[:, 0]
+    p = float(np.percentile(env, 95))
+    return np.clip(env / p, 0.0, 1.0) if p > 0 else np.zeros_like(env)
+
+
 def bilateral_pan(y: np.ndarray, sr: int, bpm: float, depth: float, *,
                   beats_per_cycle: float = 4.0,
-                  crossover_hz: float = 200.0) -> np.ndarray:
+                  crossover_hz: float = 200.0,
+                  gate: float = 0.0) -> np.ndarray:
     """Alternate the mix left/right at a bar rate, keeping the low end centred.
 
     depth is 0..1. At 0 this returns the input unchanged, exactly: the low band
@@ -166,9 +184,17 @@ def bilateral_pan(y: np.ndarray, sr: int, bpm: float, depth: float, *,
     lows = box_lowpass(y, sr, crossover_hz)
     highs = y.astype(np.float32) - lows
 
+    # gate backs the swing off where the mix is already dense. Constant panning
+    # is most objectionable through a drop -- there is no room for anything to
+    # move -- and most welcome through a breakdown, where there is. At gate=1
+    # the loudest passages sit dead centre and only the quiet ones travel.
+    swing = depth
+    if gate > 0.0:
+        swing = depth * (1.0 - min(gate, 1.0) * energy_envelope(y, sr))
+
     f = (bpm / 60.0) / max(beats_per_cycle, 1e-6)
     t = np.arange(len(y), dtype=np.float64) / sr
-    m = depth * np.sin(2.0 * np.pi * f * t)
+    m = swing * np.sin(2.0 * np.pi * f * t)
     gains = np.stack([np.sqrt(1.0 - m), np.sqrt(1.0 + m)], axis=1)
     return (lows + highs * gains.astype(np.float32)).astype(np.float32)
 
@@ -177,7 +203,8 @@ def blend(order: dict, out_path: Path, *, gain_match: str = "median",
           gain_limit: float = GAIN_LIMIT_DB, headroom_db: float = -1.0,
           keep_staged: bool = False, bilateral: float = 0.0,
           bilateral_beats: float = 4.0,
-          bilateral_crossover_hz: float = 200.0) -> dict:
+          bilateral_crossover_hz: float = 200.0,
+          bilateral_gate: float = 0.0) -> dict:
     master = float(order["master_bpm"])
     xf_beats = int(order.get("crossfade_beats", 32))
     xf_samples = int((60.0 / master) * xf_beats * SR)
@@ -322,7 +349,8 @@ def blend(order: dict, out_path: Path, *, gain_match: str = "median",
         if bilateral > 0.0:
             dev = bilateral_pan(mix, SR, master, bilateral,
                                 beats_per_cycle=bilateral_beats,
-                                crossover_hz=bilateral_crossover_hz)
+                                crossover_hz=bilateral_crossover_hz,
+                                gate=bilateral_gate)
             dev_peak = float(np.max(np.abs(dev))) if len(dev) else 1.0
             dev_norm_db = 0.0
             if dev_peak > 0:
@@ -342,6 +370,11 @@ def blend(order: dict, out_path: Path, *, gain_match: str = "median",
                 "beats_per_cycle": bilateral_beats,
                 "rate_hz": round((master / 60.0) / bilateral_beats, 3),
                 "crossover_hz": bilateral_crossover_hz,
+                "gate": round(float(bilateral_gate), 3),
+                "mean_applied_depth": round(float(np.mean(
+                    bilateral * (1.0 - min(bilateral_gate, 1.0)
+                                 * energy_envelope(mix, SR))
+                    if bilateral_gate > 0 else bilateral)), 3),
                 "normalise_gain_db": round(dev_norm_db, 2),
                 "lufs_i": dev_m["lufs_i"],
                 "true_peak_dbfs": dev_m["true_peak_dbfs"],
@@ -396,6 +429,10 @@ def main() -> int:
                     help="beats per pan cycle (default 4, one bar)")
     ap.add_argument("--bilateral-crossover", type=float, default=200.0,
                     help="below this stays centred (default 200 Hz)")
+    ap.add_argument("--bilateral-gate", type=float, default=0.0,
+                    help="0-1: back the pan off where the mix is loud. 0 is "
+                         "constant panning (default), 1 holds drops dead "
+                         "centre and lets only breakdowns travel.")
     args = ap.parse_args()
 
     order = json.loads(Path(args.order).read_text(encoding="utf-8"))
@@ -403,7 +440,8 @@ def main() -> int:
                    gain_limit=args.gain_limit, headroom_db=args.headroom_db,
                    keep_staged=args.keep_staged, bilateral=args.bilateral,
                    bilateral_beats=args.bilateral_beats,
-                   bilateral_crossover_hz=args.bilateral_crossover)
+                   bilateral_crossover_hz=args.bilateral_crossover,
+                   bilateral_gate=args.bilateral_gate)
     Path(args.out).with_suffix(".tracklist.json").write_text(
         json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))

@@ -3,12 +3,14 @@
     {
       "title": "Third Time",
       "hook": "Don't bother.",
-      "review": "Third time this month something was wrong with the order. Nobody apologised. Rude when I asked about it."
+      "review": "Third time this month something was wrong with the order. Nobody apologised. Rude when I asked about it.",
+      "variant": "raw"
     },
     {
       "title": "Twenty-Five Minutes",
       "hook": "Three jobs at once.",
-      "review": "Waited 25 minutes for a flat white. The staff were clearly slammed and one guy was doing three jobs at once."
+      "review": "Waited 25 minutes for a flat white. The staff were clearly slammed and one guy was doing three jobs at once.",
+      "variant": "raw-melodic"
     }
   ]
 }
