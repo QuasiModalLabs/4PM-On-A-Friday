@@ -346,3 +346,75 @@ class TestCli(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBoxLowpass(unittest.TestCase):
+    """The crossover is numpy-only; these pin the properties it has to have."""
+
+    def test_perfect_reconstruction(self):
+        # The caller builds the high band as y - lows, so lows + highs must be
+        # the original whatever the filter's response looks like.
+        y = (np.random.RandomState(0).randn(SR, 2) * 0.1).astype(np.float32)
+        lows = B.box_lowpass(y, SR, 200.0)
+        np.testing.assert_allclose(lows + (y - lows), y, atol=1e-6)
+
+    def test_passes_dc_unchanged(self):
+        y = np.ones((SR, 2), dtype=np.float32) * 0.5
+        np.testing.assert_allclose(B.box_lowpass(y, SR, 200.0), y, atol=1e-4)
+
+    def test_rejects_content_well_above_cutoff(self):
+        t = np.arange(SR) / SR
+        y = np.stack([np.sin(2 * np.pi * 2000 * t)] * 2, axis=1).astype(np.float32)
+        lows = B.box_lowpass(y, SR, 200.0)
+        # Interior only: edge padding leaves a settling transient in the first
+        # and last window, which is documented and harmless on a mix that
+        # starts and ends in silence. A decade above the cutoff, the steady
+        # state should be nothing at all.
+        self.assertLess(float(np.max(np.abs(lows[2000:-2000]))), 1e-5)
+
+    def test_zero_phase_keeps_the_peak_in_place(self):
+        y = np.zeros((SR, 2), dtype=np.float32)
+        y[SR // 2] = 1.0
+        lows = B.box_lowpass(y, SR, 200.0)
+        self.assertEqual(int(np.argmax(np.abs(lows[:, 0]))), SR // 2)
+
+
+class TestBilateralPan(unittest.TestCase):
+    def test_depth_zero_is_bit_identical(self):
+        # Off by default has to mean untouched, not "almost untouched".
+        y = (np.random.RandomState(1).randn(SR, 2) * 0.1).astype(np.float32)
+        np.testing.assert_array_equal(B.bilateral_pan(y, SR, 155.0, 0.0), y)
+
+    def test_constant_power(self):
+        # sqrt(1-m) and sqrt(1+m) square-sum to 2 at every instant, so a
+        # decorrelated full-band signal keeps its total power through the pan.
+        rs = np.random.RandomState(2)
+        y = (rs.randn(SR * 2, 2) * 0.1).astype(np.float32)
+        out = B.bilateral_pan(y, SR, 155.0, 1.0, crossover_hz=1.0)
+        # Estimated over noise, so a delta rather than places: the law is
+        # exact, this measurement of it is not.
+        self.assertAlmostEqual(float(np.mean(out ** 2) / np.mean(y ** 2)), 1.0,
+                               delta=0.02)
+
+    def test_low_end_stays_centred(self):
+        # The point of the crossover: a mono sub still gets the kick.
+        t = np.arange(SR * 4) / SR
+        low = np.sin(2 * np.pi * 60 * t) * 0.5
+        high = np.sin(2 * np.pi * 1500 * t) * 0.3
+        y = np.stack([low + high, low + high], axis=1).astype(np.float32)
+        out = B.bilateral_pan(y, SR, 155.0, 1.0)
+        self.assertGreater(L.mono_compat(out, SR)["bass_correlation"], 0.9)
+
+    def test_rate_is_one_cycle_per_bar(self):
+        # 155 BPM / 4 beats = 0.6458 Hz, inside the 0.5-1 Hz band the technique
+        # actually uses. Count zero crossings of the L-R difference.
+        y = (np.random.RandomState(3).randn(SR * 8, 2) * 0.1).astype(np.float32)
+        out = B.bilateral_pan(y, SR, 155.0, 1.0, crossover_hz=1.0)
+        # Signed balance, not |L-R|: the rectified difference runs at twice the
+        # pan rate and would pass this test for the wrong reason.
+        d = (out[:, 0] ** 2 - out[:, 1] ** 2).astype(np.float32)
+        bal = B.box_lowpass(np.stack([d, d], axis=1), SR, 3.0)[:, 0]
+        trim = bal[SR // 2:-SR // 2]
+        crossings = int(np.sum(np.diff(np.signbit(trim)) != 0))
+        span = len(trim) / SR
+        self.assertAlmostEqual(crossings / 2 / span, 155.0 / 60.0 / 4.0, delta=0.1)

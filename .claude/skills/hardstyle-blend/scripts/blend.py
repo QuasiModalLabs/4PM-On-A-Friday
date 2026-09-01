@@ -15,8 +15,14 @@ rest vanishes into its own crossfade -- and matching to the median moves the
 least audio to fix it. The absolute level is decided exactly once, downstream in
 master.py, so the two stages never fight.
 
+Optional bilateral panning writes a SECOND file for headphones and leaves the
+mix alone. It is off by default and it is not a mastering decision: width lives
+in the audio, so a club PA hears whatever the file contains and no single
+render can pan on phones while staying flat on speakers.
+
 Usage:
     python3 blend.py --order order.json --out mix.wav
+    python3 blend.py --order order.json --out mix.wav --bilateral 0.6
 
 order.json:
 {
@@ -102,9 +108,76 @@ def equal_power_fade(n: int) -> tuple[np.ndarray, np.ndarray]:
     return np.cos(t * np.pi / 2), np.sin(t * np.pi / 2)
 
 
+def box_lowpass(y: np.ndarray, sr: int, cutoff_hz: float,
+                stages: int = 3) -> np.ndarray:
+    """Zero-phase lowpass built from cascaded moving averages.
+
+    numpy only, on purpose -- this skill has no scipy and is not getting one for
+    a crossover. A centred box filter of length sr/cutoff has its first null at
+    the cutoff; three of them cascade into a smooth enough rolloff and stay
+    zero-phase, so the split does not smear the kick's transient.
+
+    Precision matters here: the caller reconstructs the high band as y - lows,
+    so a float32 cumsum over a ten-minute mix would accumulate visible error.
+    Accumulate in float64 and cast once.
+
+    Edge-padded, so the first and last ~n samples carry a settling transient.
+    That is harmless on a mix that starts and ends in silence, and it keeps DC
+    intact everywhere else -- which matters more, because the reconstruction
+    identity depends on it.
+    """
+    n = max(1, int(round(sr / max(cutoff_hz, 1e-6))))
+    n |= 1                      # odd window: pad symmetrically, so truly
+    if n <= 1:                  # zero-phase rather than half a sample late
+        return y.astype(np.float32, copy=True)
+    out = y.astype(np.float64, copy=True)
+    for _ in range(stages):
+        pad = n // 2
+        padded = np.pad(out, ((pad, pad), (0, 0)), mode="edge")
+        c = np.cumsum(padded, axis=0, dtype=np.float64)
+        c = np.concatenate([np.zeros((1, out.shape[1])), c], axis=0)
+        out = (c[n:] - c[:-n]) / n
+    return out.astype(np.float32)
+
+
+def bilateral_pan(y: np.ndarray, sr: int, bpm: float, depth: float, *,
+                  beats_per_cycle: float = 4.0,
+                  crossover_hz: float = 200.0) -> np.ndarray:
+    """Alternate the mix left/right at a bar rate, keeping the low end centred.
+
+    depth is 0..1. At 0 this returns the input unchanged, exactly: the low band
+    is untouched and the high band is multiplied by gains that are both 1.0, so
+    lows + highs reconstructs the original sample for sample.
+
+    Constant power, not constant amplitude. With m = depth*sin(2*pi*f*t), the
+    gains are sqrt(1-m) and sqrt(1+m), whose squares sum to 2 at every instant.
+    A linear pan would dip 3 dB through the centre once per cycle, which at a
+    bar rate is an audible pulse rather than a pan.
+
+    The low band never moves. Panning it is what destroys mono playback: the
+    measured bass correlation of a full-mix pan is around 0.54, and
+    loudness.mono_compat documents below ~0.9 as the point a system summing to
+    a mono sub loses low end. Splitting at 200 Hz keeps that figure high while
+    the rest of the mix still travels.
+    """
+    if depth <= 0.0:
+        return y.astype(np.float32, copy=True)
+    depth = float(min(depth, 1.0))
+    lows = box_lowpass(y, sr, crossover_hz)
+    highs = y.astype(np.float32) - lows
+
+    f = (bpm / 60.0) / max(beats_per_cycle, 1e-6)
+    t = np.arange(len(y), dtype=np.float64) / sr
+    m = depth * np.sin(2.0 * np.pi * f * t)
+    gains = np.stack([np.sqrt(1.0 - m), np.sqrt(1.0 + m)], axis=1)
+    return (lows + highs * gains.astype(np.float32)).astype(np.float32)
+
+
 def blend(order: dict, out_path: Path, *, gain_match: str = "median",
           gain_limit: float = GAIN_LIMIT_DB, headroom_db: float = -1.0,
-          keep_staged: bool = False) -> dict:
+          keep_staged: bool = False, bilateral: float = 0.0,
+          bilateral_beats: float = 4.0,
+          bilateral_crossover_hz: float = 200.0) -> dict:
     master = float(order["master_bpm"])
     xf_beats = int(order.get("crossfade_beats", 32))
     xf_samples = int((60.0 / master) * xf_beats * SR)
@@ -240,6 +313,52 @@ def blend(order: dict, out_path: Path, *, gain_match: str = "median",
             },
             "tracklist": tracklist,
         }
+
+        # --- optional device mix -------------------------------------------
+        # A SECOND file, never a replacement. Width is in the audio, so no
+        # single render can pan on headphones and stay flat on a PA -- the club
+        # hears whatever the file contains. mix.wav therefore stays exactly as
+        # it was, and anything bilateral goes to mix.bilateral.wav for phones.
+        if bilateral > 0.0:
+            dev = bilateral_pan(mix, SR, master, bilateral,
+                                beats_per_cycle=bilateral_beats,
+                                crossover_hz=bilateral_crossover_hz)
+            dev_peak = float(np.max(np.abs(dev))) if len(dev) else 1.0
+            dev_norm_db = 0.0
+            if dev_peak > 0:
+                # The pan adds up to +3 dB on the loud side; re-normalise so the
+                # two files sit at the same ceiling and can be compared by ear
+                # without one flattering the other.
+                dev_norm_db = headroom_db - L.lin_to_db(dev_peak)
+                dev = dev * np.float32(L.db_to_lin(dev_norm_db))
+            dev_path = out_path.with_suffix(".bilateral" + out_path.suffix)
+            sf.write(str(dev_path), dev, SR, subtype="PCM_24")
+
+            club_mono, dev_mono = L.mono_compat(mix), L.mono_compat(dev)
+            dev_m = L.measure(dev)
+            result["bilateral"] = {
+                "output": str(dev_path),
+                "depth": round(float(bilateral), 3),
+                "beats_per_cycle": bilateral_beats,
+                "rate_hz": round((master / 60.0) / bilateral_beats, 3),
+                "crossover_hz": bilateral_crossover_hz,
+                "normalise_gain_db": round(dev_norm_db, 2),
+                "lufs_i": dev_m["lufs_i"],
+                "true_peak_dbfs": dev_m["true_peak_dbfs"],
+                "club_mix": {
+                    "correlation": club_mono["correlation"],
+                    "bass_correlation": club_mono["bass_correlation"],
+                    "mono_sum_loss_lu": club_mono["mono_sum_loss_lu"],
+                },
+                "device_mix": {
+                    "correlation": dev_mono["correlation"],
+                    "bass_correlation": dev_mono["bass_correlation"],
+                    "mono_sum_loss_lu": dev_mono["mono_sum_loss_lu"],
+                },
+                "note": ("headphone render; mix.wav is the one to play out. "
+                         "Nothing here says it sounds better -- these are the "
+                         "measured differences only."),
+            }
         # Carry the ordering rationale through from order.json. It used to be
         # hand-written into the tracklist and silently destroyed on every re-blend.
         if order.get("rationale"):
@@ -268,12 +387,23 @@ def main() -> int:
                     help="peak-normalise the finished mix to this (default -1.0)")
     ap.add_argument("--keep-staged", action="store_true",
                     help="keep the stretched intermediates for debugging")
+    ap.add_argument("--bilateral", type=float, default=0.0,
+                    help="0-1 depth of bar-rate left/right panning. Off by "
+                         "default. Writes an EXTRA <out>.bilateral.wav for "
+                         "headphones; <out>.wav is untouched and stays the "
+                         "one to play out.")
+    ap.add_argument("--bilateral-beats", type=float, default=4.0,
+                    help="beats per pan cycle (default 4, one bar)")
+    ap.add_argument("--bilateral-crossover", type=float, default=200.0,
+                    help="below this stays centred (default 200 Hz)")
     args = ap.parse_args()
 
     order = json.loads(Path(args.order).read_text(encoding="utf-8"))
     result = blend(order, Path(args.out), gain_match=args.gain_match,
                    gain_limit=args.gain_limit, headroom_db=args.headroom_db,
-                   keep_staged=args.keep_staged)
+                   keep_staged=args.keep_staged, bilateral=args.bilateral,
+                   bilateral_beats=args.bilateral_beats,
+                   bilateral_crossover_hz=args.bilateral_crossover)
     Path(args.out).with_suffix(".tracklist.json").write_text(
         json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))

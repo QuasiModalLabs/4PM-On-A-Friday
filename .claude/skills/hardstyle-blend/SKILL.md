@@ -122,6 +122,34 @@ assembled mix.
 it into the tracklist. Hand-editing it into the tracklist afterwards means it is
 destroyed the next time anyone re-blends.
 
+### Bilateral panning — headphones only, off by default
+
+`--bilateral 0.6` alternates the mix left and right at one cycle per bar, which
+at 155 BPM is 0.646 Hz — inside the 0.5–1 Hz band the technique borrowed from
+EMDR actually uses. Depth is 0–1.
+
+**It writes a second file and never touches the first.** `mix.wav` stays exactly
+what it would have been; the panned render goes to `mix.bilateral.wav`. That
+split is not tidiness — width lives in the audio, so no single render can pan on
+headphones and stay flat on a PA. The club hears whatever the file contains.
+Play out `mix.wav`; the bilateral one is for phones and headphones.
+
+Everything below `--bilateral-crossover` (200 Hz default) stays centred. Panning
+the low end is what breaks mono playback: measured on a kick-and-lead bed, a
+full-band pan drops bass correlation to 0.54, and `loudness.mono_compat`
+documents below ~0.9 as where a system summing to a mono sub loses low end.
+With the crossover in place, depth 0.6 measures 0.96.
+
+The report's `bilateral` block gives both renders' correlation, bass correlation
+and mono-sum loss so the cost is visible rather than assumed. As everywhere else
+in this pipeline, those are measurements and not a claim that it sounds better —
+whether a bar-rate pan is hypnotic or nauseating over ten minutes is a listening
+call, and nobody here can make it for you.
+
+The evidence for bilateral stimulation as *therapy* is weaker than the products
+built on it suggest — EMDR has support, its bilateral component specifically is
+contested. Treat this as an effect, not a wellness feature.
+
 ## Stage 4 — Master
 
 ```bash
